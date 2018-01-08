@@ -1,0 +1,11 @@
+db/
+history
+history.sqlite
+log/
+pid/
+security/
+*.pyc
+*.pyo
+*~
+mViewer.log
+
