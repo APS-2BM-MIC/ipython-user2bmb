@@ -18,8 +18,8 @@ m7 = EpicsMotor('2bmb:m7', name='m7')
 m8 = EpicsMotor('2bmb:m8', name='m8')
 
 
-A_shutter = AB_Shutter("2bma:A_shutter, "A_shutter")
-B_shutter = AB_Shutter("2bma:B_shutter, "B_shutter")
+A_shutter = AB_Shutter("2bma:A_shutter", "A_shutter")
+B_shutter = AB_Shutter("2bma:B_shutter", "B_shutter")
 A_filter = EpicsSignal("2bma:fltr1:select.VAL", name="A_filter")
 A_mirror1 = Mirror1_A("2bma:M1", name="A_mirror1")
 A_slit1_h_center = EpicsSignal("2bma:Slit1Hcenter", name="A_slit1_h_center")

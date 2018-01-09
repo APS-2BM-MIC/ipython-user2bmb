@@ -1,6 +1,28 @@
 
 """
 2-BM-B tomography macros for BlueSky
+
+TOMO FUNCTIONS
+
+* _initFilepath
+* setDefaultFolderStructure
+* initDimax
+* initEdge
+* change2White
+* change2Mono
+* changeDMMEng
+* centerAxis
+* DimaxRadiography
+
+ADDED FUNCTIONS
+
+* process_tableFly2_sseq_record
+
+IOCs
+
+2bma   /net/s2dserv/xorApps/epics/synApps_5_8/ioc/2bmb/iocBoot/ioc2bma/st.cmd
+2bmb   /net/s2dserv/xorApps/epics/synApps_5_8/ioc/2bmb/iocBoot/ioc2bmb/st.cmd
+
 """
 
 import time
@@ -12,7 +34,9 @@ from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
 
 class ServoRotationStage(EpicsMotor):
     """extend basic motor support to enable/disable the servo loop controls"""
-    servo = Component(EpicsSignal, ".CNEN", string=True)        # values: "Enable" or "Disable"
+
+    # values: "Enable" or "Disable"
+    servo = Component(EpicsSignal, ".CNEN", string=True)
 
 
 class Mirror1_A(Device):
@@ -94,6 +118,32 @@ class PSO_Device(Device):
         self.pso_fly.put("Fly")
 
 
+class SynApps_Record_asub(Device):
+    """asub record, just the fields used here"""
+    # https://wiki-ext.aps.anl.gov/epics/index.php/RRM_3-14_Array_Subroutine
+    
+    proc = Component(EpicsSignal, ".PROC")
+    a = Component(EpicsSignal, ".A")
+    b = Component(EpicsSignal, ".B")
+    vale = Component(EpicsSignal, ".VALE")
+
+
+class SynApps_saveData_Device(Device):
+    """
+    saveData support, just the fields used here
+    
+    USAGE::
+
+        savedata = SynApps_saveData_Device("2bmb:saveData")
+        savedata.scan_number.put(5)
+        savedata.base_name.put("bane name")
+
+    """
+
+    scan_number = Component(EpicsSignal, "_scanNumber")
+    base_name = Component(EpicsSignal, "_baseName")
+
+
 class MyPcoCam(PcoDetectorCam):    # TODO: check this
     array_callbacks = Component(EpicsSignal, "ArrayCallbacks")
 	pco_cancel_dump = Component(EpicsSignal, "pco_cancel_dump")
@@ -130,24 +180,23 @@ class MyPcoDetector(SingleTrigger, AreaDetector):
         )
 
 
-A_shutter = AB_Shutter("2bma:A_shutter, "A_shutter")
-B_shutter = AB_Shutter("2bma:B_shutter, "B_shutter")
+A_shutter = AB_Shutter("2bma:A_shutter", "A_shutter")
+B_shutter = AB_Shutter("2bma:B_shutter", "B_shutter")
 A_filter = EpicsSignal("2bma:fltr1:select.VAL", name="A_filter")
 A_mirror1 = Mirror1_A("2bma:M1", name="A_mirror1")
 A_slit1_h_center = EpicsSignal("2bma:Slit1Hcenter", name="A_slit1_h_center")
 
 tomo_shutter = Motor_Shutter("2bma:m23", "tomo_shutter")
-#m23 = EpicsMotor("2bma:m23", name="m23")   # this is a shutter.  Use the shutter device instead.
 
-m7 = EpicsMotor("2bma:m7", name="m7")    # ? XIASLIT
-m25 = EpicsMotor("2bma:m25", name="m25")    # ? DMM_USX
-m26 = EpicsMotor("2bma:m26", name="m26")    # ? DMM_USY_OB
-m27 = EpicsMotor("2bma:m27", name="m27")    # ? DMM_USY_IB
-m28 = EpicsMotor("2bma:m28", name="m28")    # ? DMM_DSX
-m29 = EpicsMotor("2bma:m29", name="m29")    # ? DMM_DSY
-m30 = EpicsMotor("2bma:m30", name="m30")    # ? USArm
-m31 = EpicsMotor("2bma:m31", name="m31")    # ? DSArm
-m32 = EpicsMotor("2bma:m32", name="m32")    # ? M2Y
+am7  = EpicsMotor("2bma:m7",  name="am7")     # ? XIASLIT
+am25 = EpicsMotor("2bma:m25", name="am25")    # ? DMM_USX
+am26 = EpicsMotor("2bma:m26", name="am26")    # ? DMM_USY_OB
+am27 = EpicsMotor("2bma:m27", name="am27")    # ? DMM_USY_IB
+am28 = EpicsMotor("2bma:m28", name="am28")    # ? DMM_DSX
+am29 = EpicsMotor("2bma:m29", name="am29")    # ? DMM_DSY
+am30 = EpicsMotor("2bma:m30", name="am30")    # ? USArm
+am31 = EpicsMotor("2bma:m31", name="am31")    # ? DSArm
+am32 = EpicsMotor("2bma:m32", name="am32")    # ? M2Y
 
 
 am20     = EpicsMotor("2bma:m20", name="am20")			    # posStage in A LAT
@@ -181,6 +230,44 @@ caputRecorder10 = EpicsSignal("2bmb:caputRecorderGbl_10", name="caputRecorder10"
 caputRecorder_filename = EpicsSignal("2bmb:caputRecorderGbl_filename", name="caputRecorder_filename", string=True)
 caputRecorder_filepath = EpicsSignal("2bmb:caputRecorderGbl_filepath", name="caputRecorder_filepath", string=True)
 
+interlaceFlySub_2bmb = SynApps_Record_asub("2bmb:iFly:interlaceFlySub", name="interlaceFlySub_2bmb")
+savedata_2bmb = SynApps_saveData_Device("2bmb:saveData")
+
+
+def _initFilepath():
+    caputRecorder_filepath.put("proj")
+    path = "S:/2015_07/John/test_Slag_dry_test_10x_dimax_75mm_36DegPerSec_180Deg_2msecExpTime_600proj_Rolling_100umLuAG_1mmC_2mmGlass_pink_2.657mrad_AHutch/"
+    caputRecorder_filename.put(path)
+
+
+def setDefaultFolderStructure():
+    def caput_desc(signal, description):
+        """.DESC field is not part of EpicsSignal"""
+        epics.caput(signal.pvname+".DESC", description, wait=True, timeout=1000.0)
+
+    caput_desc(caputRecorder1, 'prefix')
+    caput_desc(caputRecorder2, 'prefix #')
+    caput_desc(caputRecorder3, 'auto-increase #')
+    caput_desc(caputRecorder4, 'sample name')
+    caput_desc(caputRecorder5, 'lens mag')
+    caput_desc(caputRecorder6, 'sam-det dist(mm)')
+    caput_desc(caputRecorder7, 'scinThickness(um)')
+    caput_desc(caputRecorder8, 'scinType')
+    caput_desc(caputRecorder9, 'filter')
+    caput_desc(caputRecorder10, 'proj #')
+
+    caputRecorder_filename.put('proj')
+    caputRecorder1.put('Exp')
+    caputRecorder2.put('1')
+    caputRecorder3.put('Yes')
+    caputRecorder4.put('S1')
+    caputRecorder5.put('10')
+    caputRecorder6.put('50')
+    caputRecorder7.put('10')
+    caputRecorder8.put('LuAG')
+    caputRecorder9.put('1mmC1mmGlass')
+    caputRecorder10.put('1')
+                                
 
 def process_tableFly2_sseq_record():
     tableFly2_sseq_PROC.put(1)
@@ -321,15 +408,15 @@ def changeDMMEng(energy=24.9):
     else:
         A_filter.put(0)
 
-#    if A_mirror1.angle.get() is not 2.657:
-#        print('mirror angle is wrong. quit!')
-#        return 0                 # TODO: could raise ValueError instead!
+    #    if A_mirror1.angle.get() is not 2.657:
+    #        print('mirror angle is wrong. quit!')
+    #        return 0                 # TODO: could raise ValueError instead!
 
     caliEnergy_list = np.array([40.0,35.0,31.0,27.4,24.9,22.7,21.1,20.2,18.9,17.6,16.8,16.0,15.0,14.4])
     XIASlit_list = np.array([37.35,41.35,42.35,42.35,43.35,46.35,44.35,46.35,47.35,50.35,52.35,53.35,54.35,51.35])    
-#    XIASlit_list = np.array([38.35,43.35,42.35,44.35,46.35,46.35,47.35,48.35,50.35,50.35,52.35,53.35,54.35,55.35]) 
-#    FlagSlit_list = np.array([19.9,,19.47])    
-#    GlobalY_list = np.array([-87.9,1.15,-79.8,1.25,-84.2,1.35,1.4,1.45,1.5,-79.8,1.6,1.65])                    
+    #    XIASlit_list = np.array([38.35,43.35,42.35,44.35,46.35,46.35,47.35,48.35,50.35,50.35,52.35,53.35,54.35,55.35]) 
+    #    FlagSlit_list = np.array([19.9,,19.47])    
+    #    GlobalY_list = np.array([-87.9,1.15,-79.8,1.25,-84.2,1.35,1.4,1.45,1.5,-79.8,1.6,1.65])                    
     USArm_list = np.array([1.10,1.25,1.10,1.15,1.20,1.25,1.30,1.35,1.40,1.45,1.50,1.55,1.60,1.65])    
     DSArm_list = np.array([1.123,1.2725,1.121,1.169,1.2235,1.271,1.3225,1.366,1.4165,1.4655,1.5165,1.568,1.6195,1.67])
     M2Y_list = np.array([13.82,15.87,12.07,13.11,14.37,15.07,15.67,16.87,17.67,18.47,19.47,20.57,21.27,22.27]) 
@@ -529,3 +616,7 @@ def DimaxRadiography(exposureTime=0.1, frmRate=9, acqPeroid=30,   # FIXME: typo
     tomo_shutter.close()
     A_shutter.close()
     print('Radiography acquisition finished!')
+
+# TODO: What do we need next?
+#   InterlaceScan() and its members
+#     DIMAX or Edge?
