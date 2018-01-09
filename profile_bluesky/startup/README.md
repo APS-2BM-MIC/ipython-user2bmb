@@ -17,10 +17,10 @@ BlueSky conventions:
 
     00   startup
     01   databroker
-    10   motors
+    10   devices
+    11   motors
     20   detectors
     25   areadetector
-    40   devices
     50   scans
     60   metadata
 
