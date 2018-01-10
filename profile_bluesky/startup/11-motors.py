@@ -1,30 +1,15 @@
 print(__file__)
-from ophyd import (PVPositioner, EpicsMotor, EpicsSignal, EpicsSignalRO,
-                   PVPositionerPC, Device)
-from ophyd import Component as Cpt
 
 
-# note: see 10-devices.py for more stages, slits, and more
+# note: see 10-devices.py for how Devices are constructed
 
-# TODO: this block is an example
-m1 = EpicsMotor('2bmb:m1', name='m1')
-m2 = EpicsMotor('2bmb:m2', name='m2')
-m3 = EpicsMotor('2bmb:m3', name='m3')
-m4 = EpicsMotor('2bmb:m4', name='m4')
-
-m5 = EpicsMotor('2bmb:m5', name='m5')
-m6 = EpicsMotor('2bmb:m6', name='m6')
-m7 = EpicsMotor('2bmb:m7', name='m7')
-m8 = EpicsMotor('2bmb:m8', name='m8')
-
-
-A_shutter = AB_Shutter("2bma:A_shutter", "A_shutter")
-B_shutter = AB_Shutter("2bma:B_shutter", "B_shutter")
+A_shutter = AB_Shutter("2bma:A_shutter", name="A_shutter")
+B_shutter = AB_Shutter("2bma:B_shutter", name="B_shutter")
 A_filter = EpicsSignal("2bma:fltr1:select.VAL", name="A_filter")
 A_mirror1 = Mirror1_A("2bma:M1", name="A_mirror1")
 A_slit1_h_center = EpicsSignal("2bma:Slit1Hcenter", name="A_slit1_h_center")
 
-tomo_shutter = Motor_Shutter("2bma:m23", "tomo_shutter")
+tomo_shutter = Motor_Shutter("2bma:m23", name="tomo_shutter")
 
 # generic motor name: {station}m{number}
 am7 = EpicsMotor("2bma:m7", name="am7")    # ? XIASLIT
@@ -54,8 +39,15 @@ pso2     = PSO_Device("2bmb:PSOFly2:", name="pso2")
 tableFly2_sseq_PROC = EpicsSignal(
           "2bmb:tableFly2:sseq2.PROC", name="tableFly2_sseq_PROC")
 
-pco_dimax = MyPcoDetector("PCOIOC2:", name="pco_dimax")  # TODO: check PV prefix
-pco_edge = MyPcoDetector("PCOIOC3:", name="pco_edge")  # TODO: check PV prefix
+try:
+    pco_dimax = MyPcoDetector("PCOIOC2:", name="pco_dimax")  # TODO: check PV prefix
+except TimeoutError:
+    print("Could not connect to PCOIOC2:pco_dimax - is the IOC off?")
+
+try:
+    pco_edge = MyPcoDetector("PCOIOC3:", name="pco_edge")  # TODO: check PV prefix
+except TimeoutError:
+    print("Could not connect to PCOIOC3:pco_edge - is the IOC off?")
 
 # TODO: these are NOT motors!
 caputRecorder1 = EpicsSignal("2bmb:caputRecorderGbl_1", name="caputRecorder1", string=True)     # prefix

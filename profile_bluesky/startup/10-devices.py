@@ -5,24 +5,29 @@ print(__file__)
 
 
 import time
-from ophyd import SingleTrigger, AreaDetector, PcoDetectorCam
-from ophyd import Component, Device, EpicsMotor, EpicsSignal, EpicsSignalWithRBV
-from ophyd import HDF5Plugin, ImagePlugin
+from ophyd import Component, Device, DeviceStatus
+from ophyd import EpicsMotor, EpicsScaler
+from ophyd import EpicsSignal, EpicsSignalRO, EpicsSignalWithRBV
+from ophyd import PVPositioner, PVPositionerPC
+from ophyd import AreaDetector, PcoDetectorCam
+from ophyd import SingleTrigger, ImagePlugin, HDF5Plugin
 from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
 
 
 class MotorDialValuesDevice(Device):
-    value = Cpt(EpicsSignalRO, ".DRBV")
-    setpoint = Cpt(EpicsSignal, ".DVAL")
+    value = Component(EpicsSignalRO, ".DRBV")
+    setpoint = Component(EpicsSignal, ".DVAL")
 
 
 class MyEpicsMotorWithDial(EpicsMotor):
-    dial = Cpt(MotorDialValuesDevice, "")
+    dial = Component(MotorDialValuesDevice, "")
 
 
 class ServoRotationStage(EpicsMotor):
     """extend basic motor support to enable/disable the servo loop controls"""
-    servo = Component(EpicsSignal, ".CNEN", string=True)        # values: "Enable" or "Disable"
+    
+    # values: "Enable" or "Disable"
+    servo = Component(EpicsSignal, ".CNEN", string=True)
 
 
 class Mirror1_A(Device):
@@ -33,7 +38,7 @@ class Mirror1_A(Device):
     A_mirror1.angle.put(Mirr_Ang)
     A_mirror1.average.put(Mirr_YAvg)
     """
-    angle = Component(EpicsSignal, "ang1")
+    angle = Component(EpicsSignal, "angl")
     average = Component(EpicsSignal, "avg")
 
 
@@ -43,16 +48,16 @@ class AB_Shutter(Device):
     
     USAGE::
 
-        A_shutter = AB_Shutter("2bma:A_shutter", "A_shutter")
+        A_shutter = AB_Shutter("2bma:A_shutter", name="A_shutter")
         A_shutter.open()
         A_shutter.close()
 
-        B_shutter = AB_Shutter("2bma:B_shutter", "B_shutter")
+        B_shutter = AB_Shutter("2bma:B_shutter", name="B_shutter")
         B_shutter.close()
 
     """
-    pss_open = Component(Signal, ":open")
-    pss_close = Component(Signal, ":close")
+    pss_open = Component(EpicsSignal, ":open")
+    pss_close = Component(EpicsSignal, ":close")
     
     def open(self):
         """tells PSS to open the shutter"""
@@ -69,7 +74,7 @@ class Motor_Shutter(Device):
     
     USAGE::
 
-        tomo_shutter = Motor_Shutter("2bma:m23", "tomo_shutter")
+        tomo_shutter = Motor_Shutter("2bma:m23", name="tomo_shutter")
         tomo_shutter.open()
         tomo_shutter.close()
 
