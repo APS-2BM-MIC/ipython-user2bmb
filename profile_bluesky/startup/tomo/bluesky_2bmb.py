@@ -16,11 +16,14 @@ TOMO FUNCTIONS
 * EdgeRadiography
 * _edgeAcquireFlat
 * _edgeAcquireDark
+* _edgeTest
 * InterlaceScan
 
 ADDED FUNCTIONS
 
+* make_log_file
 * process_tableFly2_sseq_record
+* wait_temperature
 
 IOCs
 
@@ -138,7 +141,7 @@ class SynApps_saveData_Device(Device):
     
     USAGE::
 
-        savedata = SynApps_saveData_Device("2bmb:saveData")
+        savedata = SynApps_saveData_Device("2bmb:saveData" name="savedata")
         savedata.scan_number.put(5)
         savedata.base_name.put("bane name")
 
@@ -186,6 +189,7 @@ class MyPcoDetector(SingleTrigger, AreaDetector):
 
 # ---------------------------------------------------------------------------------
 
+USER2BMB_ROOT_DIR = "/local/user2bmb"
 
 A_shutter = AB_Shutter("2bma:A_shutter", name="A_shutter")
 B_shutter = AB_Shutter("2bma:B_shutter", name="B_shutter")
@@ -241,8 +245,59 @@ caputRecorder_filepath = EpicsSignal("2bmb:caputRecorderGbl_filepath", name="cap
 interlaceFlySub_2bmb = SynApps_Record_asub("2bmb:iFly:interlaceFlySub", name="interlaceFlySub_2bmb")
 savedata_2bmb = SynApps_saveData_Device("2bmb:saveData", name="savedata_2bmb")
 
+preTemp = EpicsSignal("2bmb:ET2k:1:Temperature.VAL", name="preTemp")
+
+userCalcs_2bmb = userCalcsDevice("2bmb:", name="userCalcs_2bmb")
+
 
 # ---------------------------------------------------------------------------------
+
+
+def make_timestamp():
+    timestamp = [x for x in time.asctime().rsplit(' ') if x!='']
+    timestamp = ''.join(timestamp[0:3]) \
+                + '_' + timestamp[3].replace(':','_') \
+                + '_' + timestamp[4]
+    return timestamp
+
+
+def make_log_file(filepathString, filenameString, file_number):
+    """
+    make the log file (build the path (str) to keep the log file)
+    
+    take last three subdirs of filepathString and append to USER2BMB_ROOT_DIR
+    
+    returns tuple of (logFilePath, logFileName)
+    
+    example:
+    given filepathString = "/some/long/path/with/many/sub/dirs"
+    and USER2BMB_ROOT_DIR = "/local/user2bmb"
+    then path is "/local/user2bmb/many/sub/dirs"
+    """
+    # the original has confusing syntax
+    # pathSep =  filepathString.rsplit('/')
+    # logFilePath = os.path.join(USER2BMB_ROOT_DIR, pathSep[-3],pathSep[-2],pathSep[-1])
+    
+    pathlist = [USER2BMB_ROOT_DIR]
+    pathlist +=  filepathString.rsplit('/')[-3:]    # last three subdirs
+    logFilePath = os.path.join(pathlist)
+
+    # create the directory if it does not exist
+    if not os.path.exists(logFilePath):
+        os.makedirs(logFilePath)
+                        
+    mapping = {
+        "name": filenameString,
+        "index": file_number
+        }
+    format = "%(name)s_%(index)03d.log"
+    logFileName = os.path.join(logFilePath, format % mapping)
+
+    # create the log file
+    logFile = open(logFileName,'w')
+    logFile.close()                
+    
+    return logFilePath, logFileName
 
 
 def _initFilepath():
@@ -546,25 +601,23 @@ def DimaxRadiography(
 
     for ii in range(repeat):
         tomo_shutter.close()
-        timestamp = [x for x in time.asctime().rsplit(' ') if x!='']
-        timestamp = ''.join(timestamp[0:3]) \
-                    + '_' + timestamp[3].replace(':','_') \
-                    + '_' + timestamp[4]
         
         filepath = os.path.join(filepath_top, \
                    caputRecorder1.value+ \
                    caputRecorder2.value.zfill(3)+'_'+ 'Radiography_'+\
                    caputRecorder4.value+'_'+\
                    'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
-                   timestamp + '_'+\
+                   make_timestamp() + '_'+\
                    cam+'_'+caputRecorder5.value+'x'+'_'+\
                    caputRecorder6.value+'mm'+'_'+\
                    str(exposureTime*1000)+'msecExpTime_'+\
                    camShutterMode+'_'+caputRecorder7.value+'um'+\
                    caputRecorder8.value+'_'+\
                    caputRecorder9.value+'_'+\
-                   str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+str(int(am30.position*1000)/1000.0)+\
-                   '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station)     
+                   str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
+                   str(int(am30.position*1000)/1000.0)+\
+                   '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+\
+                   station)     
         filename = caputRecorder_filename.value   
     
         det.cam.acquire.put("Done")
@@ -594,7 +647,7 @@ def DimaxRadiography(
 
         samStage.move(samInPos)
         det.cam.num_images.put(numImage-20)
-        det.cam.frame_type.put('0')
+        det.cam.frame_type.put("Normal")
         det.cam.acquire.put("Acquire")
         det.cam.pco_dump_counter.put('0')
         det.cam.pco_imgs2dump.put(numImage-20)
@@ -603,7 +656,7 @@ def DimaxRadiography(
 
         det.cam.num_images.put(10)
         samStage.move(samOutPos)
-        det.cam.frame_type.put('2')
+        det.cam.frame_type.put("FlatField")
         det.cam.acquire.put("Acquire")
         det.cam.pco_dump_counter.put('0')
         det.cam.pco_imgs2dump.put(10)
@@ -614,7 +667,7 @@ def DimaxRadiography(
 
         # tomo_shutter.open()
         samStage.move(samInPos)
-        det.cam.frame_type.put('1')
+        det.cam.frame_type.put("Background")
         det.cam.acquire.put("Acquire")
         det.cam.pco_dump_counter.put('0')
         det.cam.pco_imgs2dump.put(10)
@@ -694,17 +747,12 @@ def EdgeRadiography(
     #                str(am26.position)+'_'+station)
 
     for ii in range(repeat):
-        timestamp = [x for x in time.asctime().rsplit(' ') if x!='']
-        timestamp = ''.join(timestamp[0:3]) \
-                    + '_' + timestamp[3].replace(':','_') \
-                    + '_' + timestamp[4]
-
         filepath = os.path.join(filepath_top, \
                    caputRecorder1.value+ \
                    caputRecorder2.value.zfill(3)+'_'+ 'Radiography_'+\
                    caputRecorder4.value+'_'+\
                    'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
-                   timestamp + '_'+\
+                   make_timestamp() + '_'+\
                    cam+'_'+caputRecorder5.value+'x'+'_'+\
                    caputRecorder6.value+'mm'+'_'+\
                    str(exposureTime*1000)+'msecExpTime_'+\
@@ -734,15 +782,15 @@ def EdgeRadiography(
         det.cam.pco_global_shutter.put(camShutterMode)
         det.cam.pco_is_frame_rate_mode.put("DelayExp")
         det.cam.acquire_period.put(0)
-        det.cam.frame_type.put(0)
+        det.cam.frame_type.put("Normal")
 
         if hasattr(det, "hdf1"):
             # FIXME: check these!!!
             det.hdf1.enable_callbacks.put(1)
             det.hdf1.auto_increment.put("Yes")
             det.hdf1.num_capture.put(str(numImage+20))
-            det.hdf1.num_capture_RBV.put(str(numImage+20))
-            det.hdf1.num_captured_RBV.put("0")
+            det.hdf1.num_capture.put(str(numImage+20))
+            det.hdf1.num_captured.put(0)
             det.hdf1.file_path.put(filepath)
             det.hdf1.file_name.put(filename)
             det.hdf1.file_template.put("%s%s_%4.4d.hdf")
@@ -779,38 +827,94 @@ def EdgeRadiography(
     print('Radiography acquisition finished!')
 
 
-def _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter, PSO=None):
+def _edgeTest(camScanSpeed,camShutterMode,roiSizeX=2560,roiSizeY=2160,PSO=None):
     PSO = PSO or pso1
     det = pco_edge
 
-    samStage.move(str(samOutPos), wait=False)
-    PSO.scan_control.put("Standard")
-    shutter.open()
-    time.sleep(5)
-    det.cam.frame_type.put(2)
+    # det.cam.scan_control.put("Standard")
+    det.cam.array_callbacks.put("Enable")
     det.cam.num_images.put(10)
-    
+    det.cam.image_mode.put("Multiple")
+    det.cam.pco_global_shutter.put(camShutterMode)
+    det.cam.pco_edge_fastscan.put(camScanSpeed)
+    det.cam.acquire_time.put(0.001000)
+    det.cam.size_x.put(roiSizeX)
+    det.cam.size_y.put(roiSizeY)
     det.cam.pco_trigger_mode.put("Auto")
     det.cam.acquire.put("Acquire")
+    print("camera passes test!")
 
-    PSO.start_pos.put(0.00000)
-    PSO.end_pos.put(6.0000)
-    PSO.scan_delta.put(0.3)
-    PSO.slew_speed.put(1)
-    rotStage.velocity.put(3)
-    rotStage.acceleration.put(1)
+
+def _edgeSet(filepath, filename, numImage, exposureTime, frate, PSO=None):
+    PSO = PSO or pso1    
+    det = pco_edge
+
+    det.cam.pco_is_frame_rate_mode.put("DelayExp")
+    det.cam.acquire_period.put(0)
+    det.cam.pco_set_frame_rate.put(frate+1)     # TODO: why twice?
+    det.cam.pco_set_frame_rate.put(frate)
+    det.hdf1.auto_increment.put("Yes")
+    det.hdf1.num_capture.put(numImage)
+    det.hdf1.num_capture.put(numImage)
+    det.hdf1.num_captured.put(0)
+    det.hdf1.file_path.put(filepath)
+    det.hdf1.file_name.put(filename)
+    det.hdf1.file_template.put("%s%s_%4.4d.hdf")
+    det.hdf1.auto_save.put("Yes")
+    det.hdf1.file_write_mode.put("Stream")
+    det.hdf1.capture.put("Capture", wait=False)
+    det.cam.num_images.put(numImage)
+    det.cam.pco_image_mode.put("Multiple")
+    det.cam.acquire_time.put(exposureTime)
+    det.cam.pco_trigger_mode.put("Soft/Ext")
+    det.cam.pco_ready2acquire.put(0)
+    det.cam.acquire.put("Acquire", wait=False)
+
+
+def _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, PSO=None,rotStage=None):
+    PSO = PSO or pso1
+    rotStage = rotStage or bm82
+    det = pco_edge
+
+    shutter.open()
+    det.cam.frame_type("Normal")
+    samStage.move(samInPos)
+    rotStage.velocity.put(50.00000)
+    rotStage.move(0.00000)
     PSO.taxi()
     PSO.fly()
-    rotStage.velocity.put(50)
-    rotStage.move(0)
-    
-    shutter.close()
-    time.sleep(5)            
-    #    while det.cam.num_capture_RBV.value != det.cam.num_captured_RBV.value:
-    #        time.sleep(1)                
-    det.cam.acquire.put("Done")
+    if PSO.pso_fly.value == 0 & clShutter == 1:               
+        shutter.close()     
+    rotStage.set_current_position(1.0*rotStage.position%360.0)
+    rotStage.velocity.put(50.00000)
+    time.sleep(1)
+    rotStage.move(0.00000)
+#    epics.caput(shutter+":close.VAL",1, wait=True, timeout=1000.0)                  
+    while (det.hdf1.num_captured.value != numProjPerSweep):    
+        time.sleep(1)                    
+
+
+def _edgeInterlaceAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1,InterlacePSO=None,rotStage=None):
+    InterlacePSO = InterlacePSO or pso1
+    rotStage = rotStage or bm82
+    det = pco_edge
+
+    det.cam.frame_type.put("Normal")
     samStage.move(samInPos)
-    # set for white field -- end
+    InterlacePSO.put("Fly")
+    # shutter.close()
+    # shutter.open()
+    if clShutter == 1:
+        shutter.close()
+    rotStage.set_current_position(1.0*rotStage.position%360.0)
+    rotStage.velocity.put(50.00000)
+    rotStage.move(0, wait=False)
+    numProjPerSweep = det.cam1.num_images_counter.value
+    print("Saving sample data ...")
+    while (det.cam1.num_captured.value != numProjPerSweep):    
+        time.sleep(1)
+    # det.cam1.acquire.put("Done")
+    # det.hdf1.acquire.put("Done")
 
 
 def _edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, PSO=None):
@@ -821,41 +925,80 @@ def _edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, PSO=None):
     shutter.close()
     time.sleep(5)
             
-    det.cam.frame_type.put(1)
+    det.cam.frame_type.put("Background")
     det.cam.num_images.put(10)
 
     det.cam.pco_trigger_mode.put("Auto")
     det.cam.acquire.put("Acquire")
         
-#    PSO.start_pos.put(0.00000)
-#    PSO.end_pos.put(6.0000)
-#    PSO.scan_delta.put(0.3)
-#    PSO.slew_speed.put(1)
-#    rotStage.velocity.put(3)
-#    rotStage.acceleration.put(1)
-#    PSO.taxi()
-#    PSO.fly()
-#    rotStage.velocity.put(50)
-#    rotStage.move(0)
+    # PSO.start_pos.put(0.00000)
+    # PSO.end_pos.put(6.0000)
+    # PSO.scan_delta.put(0.3)
+    # PSO.slew_speed.put(1)
+    # rotStage.velocity.put(3)
+    # rotStage.acceleration.put(1)
+    # PSO.taxi()
+    # PSO.fly()
+    # rotStage.velocity.put(50)
+    # rotStage.move(0)
              
-    #    while det.cam.num_capture_RBV.value != det.cam.num_captured_RBV.value:
+    #    while det.cam.num_capture.value != det.cam.num_captured.value:
     #        time.sleep(1)                
     det.cam.acquire.put("Done")
     samStage.move(samInPos)
 
 
-# TODO: What do we need next?
-#   InterlaceScan() and its members
-#     DIMAX or Edge?
+def _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter, PSO=None):
+    PSO = PSO or pso1
+    det = pco_edge
+
+    samStage.move(str(samOutPos), wait=False)
+    PSO.scan_control.put("Standard")
+    shutter.open()
+    time.sleep(5)
+    det.cam.frame_type.put("FlatField")
+    det.cam.num_images.put(10)
+    
+    det.cam.pco_trigger_mode.put("Auto")
+    det.cam.acquire.put("Acquire")
+
+    # PSO.start_pos.put(0.00000)
+    # PSO.end_pos.put(6.0000)
+    # PSO.scan_delta.put(0.3)
+    # PSO.slew_speed.put(1)
+    # rotStage.velocity.put(3)
+    # rotStage.acceleration.put(1)
+    # PSO.taxi()
+    # PSO.fly()
+    # rotStage.velocity.put(50)
+    # rotStage.move(0)
+    
+    shutter.close()
+    time.sleep(5)            
+    #    while det.cam.num_capture.value != det.cam.num_captured.value:
+    #        time.sleep(1)                
+    det.cam.acquire.put("Done")
+    samStage.move(samInPos)
+    # set for white field -- end
+
 
 """
-A:    If we test interlaceScan, I will use 
+Q: Dimax or Edge?
+A:    If we test interlaceScan, will use 
 
     posStage = 2bma:m20
     samStage = 2bma:m49
     rotStage = 2bmb:m82
     Detector will be 'edge'.
 """
+
+def wait_temperature(trigTemp):
+    """wait for temperature to reach trigger temperature"""
+    previous = preTemp
+    while ((preTemp-trigTemp)*(previous-trigTemp)>0):
+        preTemp_ref = preTemp          
+        time.sleep(0.5)
+
 
 def InterlaceScan(
         exposureTime=0.006, 
@@ -879,10 +1022,201 @@ def InterlaceScan(
     # station = 'BHutch'
     BL = "2bmb"
     pso.scan_control.put("Custom")
-    interlaceFlySub_2bmb.proc.put(1_
+    interlaceFlySub_2bmb.proc.put(1)
     slewSpeed = pso.slew_speed.value
     if samStage.user_setpoint.pvname.startswith('2bma'):
         station = 'AHutch'
     elif samStage.user_setpoint.pvname.startswith('2bmb'):    
         station = 'BHutch' 
-    raise Exception("work-in-progress") # FIXME:
+
+    if cam == "edge":
+        initEdge()
+        camScanSpeed = "Fastest"
+        camShutterMode = "Rolling"                
+        det = pco_edge                                    
+
+        imgPerSubCycle = 1.0*interlaceFlySub_2bmb.a/interlaceFlySub_2bmb.b
+        secPerSubCycle = 180.0/pso.slew_speed.value
+        frate = int(imgPerSubCycle/secPerSubCycle + 5)
+        det.hdf1.file_number.put(caputRecorder10.value)
+        savedata_2bmb.scan_number.put(caputRecorder10.value)
+
+        print("Scan starts ...")
+
+        shutter.open()
+                    
+        filepath_top = caputRecorder_filepath.value
+        det.hdf1.create_directory.put(-5)
+        det.hdf1.file_number.put(caputRecorder10.value)
+        filename = caputRecorder_filename.value             # TODO: duplicate of filenameString?
+        filepathString = caputRecorder_filepath.value
+        filenameString = caputRecorder_filename.value
+        
+        logFilePath, logFileName = make_log_file(
+            filepathString, filenameString, int(det.hdf1.file_number.value))
+        print("Your scan is logged in ", logFileName)
+        
+        samInPos = samStage.position
+        samOutPos = samInPos + samOutPos                                
+                                            
+        filepath = os.path.join(filepath_top, \
+               caputRecorder1.value+ \
+               caputRecorder2.value.zfill(3)+'_'+ \
+               caputRecorder4.value+'_'+\
+               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
+               make_timestamp() + '_'+\
+               cam+'_'+caputRecorder5.value+'x'+'_'+\
+               caputRecorder6.value+'mm'+'_'+\
+               str(exposureTime*1000)+'msecExpTime_'+\
+               str(slewSpeed)+'DegPerSec_'+\
+               camShutterMode+'_'+\
+               caputRecorder7.value+'um'+\
+               caputRecorder8.value+'_'+\
+               caputRecorder9.value+'_'+\
+               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
+               str(int(am30.position*1000)/1000.0)+\
+               '_monoY_'+\
+               str(int(am26.position*1000)/1000.0)+'_'+\
+               station) 
+
+        numImage = interlaceFlySub_2bmb.vale
+        
+        # test camera -- start
+        _edgeTest(camScanSpeed,camShutterMode,roiSizeX=roiSizeX,roiSizeY=roiSizeY,PSO=PSO)
+        
+        # set scan parameters -- start
+        # _edgeSet(filepath, filename, numImage, exposureTime, frate, PSO = PSO)
+        # _setPSO(slewSpeed, scanDelta, acclTime, PSO=PSO,rotStage=rotStage)
+            
+        # sample scan -- start  
+        print("start sample scan ... ")
+        
+        wait_temperature(trigTemp)
+        
+        time.sleep(delay) 
+        for ii in range(repeat):
+            _edgeSet(filepath, filename, numImage, exposureTime, frate, PSO = PSO)
+            rotStage.velocity.put(200)
+            pso.taxi()
+            _edgeInterlaceAcquisition(samInPos,samStage,numImage,shutter,InterlacePSO = PSO,rotStage=rotStage)                                       
+            if ii < (repeat-1):
+                print("repeat #", ii, " is done! next scan will be started in ", interval, " seconds ...")
+                time.sleep(interval)
+
+        shutter.open()
+        logFile = open(logFileName,'a')
+        logFile.write("Scan was done at time: " + time.asctime() + '\n')
+        logFile.close()                                                                    
+        print("sample scan is done!")
+        # scan sample -- end                                                      
+        
+        # set for white field -- start
+        if flatPerScan == 0:                                 
+            print("Acquiring flat images ...")
+            _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, PSO = PSO)            
+            print("flat is done!")
+        # set for white field -- end
+        
+#        # set for dark field -- start
+        if darkPerScan == 0:                                
+            print("Acquiring dark images ...")
+            _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, PSO = PSO)            
+            print("dark is done!")
+    
+        caputRecorder10.put(det.hdf1.file_number.value)
+        if caputRecorder3.value == 'Yes':
+            caputRecorder2.put(str(int(caputRecorder2.value)+1))
+        # set for dark field -- end
+        
+        # set for new scans -- start
+        det.hdf1.capture.put("Done")
+        det.cam.acquire.put("Done")
+        det.cam.pco_edge_fastscan.put("Normal")
+        det.cam.pco_trigger_mode.put("Auto")
+        det.cam.image_mode.put("Continuous")
+        det.cam.size_x.put(roiSizeX)
+        det.cam.size_y.put(roiSizeY)
+        samStage.move(samInPos)
+        # set for new scans -- end
+        print("Scan is done.")
+    elif cam == "dimax":
+        raise RuntimeError("Dimax Interlace scan not implemented yet")
+#         initDimax(samInPos=samInPos)    
+#         det = pco_dimax     
+#         # tomo configurations -- end                    
+#     
+# #        scanDelta = 1.0*angEnd/numProjPerSweep
+# #        acclTime = 1.0*slewSpeed/accl
+#         imgPerSubCycle = 1.0*interlaceFlySub_2bmb.a/interlaceFlySub_2bmb.b
+#         secPerSubCycle = 180.0/pso.slew_speed.value
+#         frate = int(imgPerSubCycle/secPerSubCycle + 100)                          
+#         det.hdf1.file_number.put(caputRecorder10.value)
+#         savedata_2bmb.scan_number.put(caputRecorder10.value)
+#         # det.hdf1.file_number.put(userCalcs_2bmb.calc3)
+#         print("Scan starts ...")
+#         shutter.open()
+#                     
+#         filepath = caputRecorder_filepath   # TODO: duplicates?
+#         filename = caputRecorder_filename
+#     
+#         filepathString = caputRecorder_filepath
+#         filenameString = caputRecorder_filename
+#         pathSep =  filepathString.rsplit('/')       # TODO: confusing syntax
+#     
+#         logFilePath, logFileName = make_log_file_path(
+#             filepathString, filenameString, int(det.hdf1.file_number.value))
+#         print("Your scan is logged in ", logFileName)
+#         
+#         numImage = interlaceFlySub_2bmb.vale
+# #        numImage = det.cam.pco_max_imgs_seg0.value # camPrefix+":cam1:pco_max_imgs_seg0_RBV.VAL"
+#         
+#         # test camera -- start
+#         _dimaxTest(roiSizeX=roiSizeX,roiSizeY=roiSizeY,PSO = PSO)
+#         # test camera -- end
+#         
+#         # set scan parameters -- start
+#         _dimaxSet(filepath, filename, numImage, exposureTime, frate, PSO = PSO)
+# #        _setPSO(slewSpeed, scanDelta, acclTime, PSO=PSO,rotStage=rotStage)
+#         # set scan parameters -- end
+#                     
+#         print("start sample scan ... ")
+#         rotStage.velocity.put(200)
+#         pso.taxi()
+#         
+#         wait_temperature(trigTemp)
+#         
+#         time.sleep(delay)                
+#         _dimaxInterlaceAcquisition(samInPos,samStage,numImage,shutter,InterlacePSO = PSO,rotStage=rotStage)                        
+#         
+#         logFile = open(logFileName,'a')
+#         logFile.write("Scan was done at time: " + time.asctime() + '\n')
+#         logFile.close()                                                                    
+#         print("sample scan is done!")
+#         # scan sample -- end
+#         
+#         # set for white field -- start
+#         print("Acquiring flat images ...")
+#         _dimaxAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, PSO = PSO)        
+#         print("flat is done!")
+#         # set for white field -- end
+#         
+#         # set for dark field -- start
+#         print("Acquiring dark images ...")
+#         _dimaxAcquireDark(samInPos,filepath,samStage,rotStage,shutter, PSO = PSO)                
+#         print("dark is done!")
+#     
+#         caputRecorder10.put(det.hdf1.file_number)
+#         # set for dark field -- end
+#         
+#         # set for new scans -- start
+#         det.hdf1.capture.put("Done")
+#         det.cam.acquire.put("Done")
+#         det.cam.pco_trigger_mode.put("Auto")
+#         det.cam.pco_live_view.put("Yes")
+#         det.cam.size_x.put(roiSizeX)
+#         det.cam.size_y.put(roiSizeY)
+#         samStage.move(samInPos)
+#         # set for new scans -- end
+#         print("Scan is done.")
+    pso.slew_speed.put(slewSpeed)
+
