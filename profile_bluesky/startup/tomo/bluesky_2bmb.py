@@ -13,6 +13,10 @@ TOMO FUNCTIONS
 * changeDMMEng
 * centerAxis
 * DimaxRadiography
+* EdgeRadiography
+* _edgeAcquireFlat
+* _edgeAcquireDark
+* InterlaceScan
 
 ADDED FUNCTIONS
 
@@ -41,13 +45,13 @@ class ServoRotationStage(EpicsMotor):
 
 class Mirror1_A(Device):
     """
-	Mirror 1 in the 2BM-A station
-	
-	A_mirror1 = Mirror1_A("2bma:M1", name="A_mirror1")
-	A_mirror1.angle.put(Mirr_Ang)
-	A_mirror1.average.put(Mirr_YAvg)
-	"""
-	angle = Component(EpicsSignal, "ang1")
+    Mirror 1 in the 2BM-A station
+    
+    A_mirror1 = Mirror1_A("2bma:M1", name="A_mirror1")
+    A_mirror1.angle.put(Mirr_Ang)
+    A_mirror1.average.put(Mirr_YAvg)
+    """
+    angle = Component(EpicsSignal, "angl")
     average = Component(EpicsSignal, "avg")
 
 
@@ -146,21 +150,21 @@ class SynApps_saveData_Device(Device):
 
 class MyPcoCam(PcoDetectorCam):    # TODO: check this
     array_callbacks = Component(EpicsSignal, "ArrayCallbacks")
-	pco_cancel_dump = Component(EpicsSignal, "pco_cancel_dump")
-	pco_live_view = Component(EpicsSignal, "pco_live_view")
-	pco_trigger_mode = Component(EpicsSignal, "pco_trigger_mode")
-	pco_edge_fastscan = Component(EpicsSignal, "pco_edge_fastscan")
-	pco_is_frame_rate_mode = Component(EpicsSignal, "pco_is_frame_rate_mode")
-	pco_imgs2dump = Component(EpicsSignalWithRBV, "pco_imgs2dump")
-	pco_dump_counter = Component(EpicsSignal, "pco_dump_counter")
-	pco_dump_camera_memory = Component(EpicsSignal, "pco_dump_camera_memory")
+    pco_cancel_dump = Component(EpicsSignal, "pco_cancel_dump")
+    pco_live_view = Component(EpicsSignal, "pco_live_view")
+    pco_trigger_mode = Component(EpicsSignal, "pco_trigger_mode")
+    pco_edge_fastscan = Component(EpicsSignal, "pco_edge_fastscan")
+    pco_is_frame_rate_mode = Component(EpicsSignal, "pco_is_frame_rate_mode")
+    pco_imgs2dump = Component(EpicsSignalWithRBV, "pco_imgs2dump")
+    pco_dump_counter = Component(EpicsSignal, "pco_dump_counter")
+    pco_dump_camera_memory = Component(EpicsSignal, "pco_dump_camera_memory")
 
 
 class MyHDF5Plugin(HDF5Plugin, FileStoreHDF5IterativeWrite):
     """adapt HDF5 plugin for AD 2.5+"""
     
     file_number_sync = None
-	xml_layout_file = Component(EpicsSignalWithRBV, "XMLFileName")
+    xml_layout_file = Component(EpicsSignalWithRBV, "XMLFileName")
     
     def get_frames_per_point(self):
         return self.parent.cam.num_images.get()
@@ -180,13 +184,16 @@ class MyPcoDetector(SingleTrigger, AreaDetector):
         )
 
 
-A_shutter = AB_Shutter("2bma:A_shutter", "A_shutter")
-B_shutter = AB_Shutter("2bma:B_shutter", "B_shutter")
+# ---------------------------------------------------------------------------------
+
+
+A_shutter = AB_Shutter("2bma:A_shutter", name="A_shutter")
+B_shutter = AB_Shutter("2bma:B_shutter", name="B_shutter")
 A_filter = EpicsSignal("2bma:fltr1:select.VAL", name="A_filter")
 A_mirror1 = Mirror1_A("2bma:M1", name="A_mirror1")
 A_slit1_h_center = EpicsSignal("2bma:Slit1Hcenter", name="A_slit1_h_center")
 
-tomo_shutter = Motor_Shutter("2bma:m23", "tomo_shutter")
+tomo_shutter = Motor_Shutter("2bma:m23", name="tomo_shutter")
 
 am7  = EpicsMotor("2bma:m7",  name="am7")     # ? XIASLIT
 am25 = EpicsMotor("2bma:m25", name="am25")    # ? DMM_USX
@@ -199,20 +206,21 @@ am31 = EpicsMotor("2bma:m31", name="am31")    # ? DSArm
 am32 = EpicsMotor("2bma:m32", name="am32")    # ? M2Y
 
 
-am20     = EpicsMotor("2bma:m20", name="am20")			    # posStage in A LAT
-am46     = EpicsMotor("2bma:m46", name="am46")			    # posStage in A SAT
+am20     = EpicsMotor("2bma:m20", name="am20")              # posStage in A LAT
+am46     = EpicsMotor("2bma:m46", name="am46")              # posStage in A SAT
 am49     = EpicsMotor("2bma:m49", name="am49")              # sample stage in A
 bm82     = ServoRotationStage("2bmb:m82", name="bm82")      # rotation stage in A
 bm63     = EpicsMotor("2bmb:m63", name="bm63")              # sample stage in B
 bm100    = ServoRotationStage("2bmb:m100", name="bm100")    # rotation stage in B
 furnaceY = EpicsMotor("2bma:m55", name="furnaceY")
-bm4      = EpicsMotor("2bmb:m4",  name="bm4")			    # posStage in B LAT
-bm57     = EpicsMotor("2bmb:m57", name="bm57")			    # posStage in B SAT
+bm4      = EpicsMotor("2bmb:m4",  name="bm4")               # posStage in B LAT
+bm57     = EpicsMotor("2bmb:m57", name="bm57")              # posStage in B SAT
 
 pso1     = PSO_Device("2bmb:PSOFly1:", name="pso1")
 pso2     = PSO_Device("2bmb:PSOFly2:", name="pso2")
 tableFly2_sseq_PROC = EpicsSignal(
-          "2bmb:tableFly2:sseq2.PROC", name="tableFly2_sseq_PROC")
+    "2bmb:tableFly2:sseq2.PROC", 
+    name="tableFly2_sseq_PROC")
 
 pco_dimax = MyPcoDetector("PCOIOC2:", name="pco_dimax")  # TODO: check PV prefix
 pco_edge = MyPcoDetector("PCOIOC3:", name="pco_edge")  # TODO: check PV prefix
@@ -231,12 +239,15 @@ caputRecorder_filename = EpicsSignal("2bmb:caputRecorderGbl_filename", name="cap
 caputRecorder_filepath = EpicsSignal("2bmb:caputRecorderGbl_filepath", name="caputRecorder_filepath", string=True)
 
 interlaceFlySub_2bmb = SynApps_Record_asub("2bmb:iFly:interlaceFlySub", name="interlaceFlySub_2bmb")
-savedata_2bmb = SynApps_saveData_Device("2bmb:saveData")
+savedata_2bmb = SynApps_saveData_Device("2bmb:saveData", name="savedata_2bmb")
+
+
+# ---------------------------------------------------------------------------------
 
 
 def _initFilepath():
     caputRecorder_filepath.put("proj")
-    path = "S:/2015_07/John/test_Slag_dry_test_10x_dimax_75mm_36DegPerSec_180Deg_2msecExpTime_600proj_Rolling_100umLuAG_1mmC_2mmGlass_pink_2.657mrad_AHutch/"
+    path = "s:/data/2017_12/Commissioning"
     caputRecorder_filename.put(path)
 
 
@@ -303,7 +314,7 @@ def initDimax(samInPos=0, hutch='A'):
         det.hdf1.capture.put("Done")
         det.hdf1.num_captured.put(0)
     rotStage.servo.put("Enable")
-	process_tableFly2_sseq_record()
+    process_tableFly2_sseq_record()
     rotStage.velocity.put(180)
     rotStage.acceleration.put(3)
     rotStage.move(0)
@@ -339,8 +350,8 @@ def initEdge(samInPos=0, samStage=None, rotStage=None):
         det.hdf1.capture.put("Done")
         det.hdf1.xml_layout_file.put("DynaMCTHDFLayout.xml")
         det.hdf1.num_captured.put(0)
-	det.image.enable.put("Enable")
-	process_tableFly2_sseq_record()
+    det.image.enable.put("Enable")
+    process_tableFly2_sseq_record()
     rotStage.stop()
     rotStage.set_use_switch.put("Set")
     rotStage.user_setpoint.put(rotStage.position % 360.0)
@@ -382,7 +393,7 @@ def change2Mono():
     A_filter.put(0)
     A_mirror1.average.put(0)
     time.sleep(1) 
-	
+    
     A_mirror1.angle.put(2.657)
     time.sleep(1)
 
@@ -454,12 +465,14 @@ def changeDMMEng(energy=24.9):
 
 def centerAxis(axisShift=12.5, refYofX0=14.976):
     """
-	function documentation
+    function documentation
                 
-	axisShift: rotation axis shift in unit um/mm. it is defined as the shift distance when the vertical stage moves up.
-		  it assumes rotation axis is at image center at posInit.
-	this is the case in which the rotation axis move toward right side (larger 'center' in reconstruction)
-	when the sample stage moves up.                                                        
+    axisShift: rotation axis shift in unit um/mm. 
+        It is defined as the shift distance when the vertical stage moves up.
+        It assumes rotation axis is at image center at posInit.
+        This is the case in which the rotation axis move toward right 
+        side (larger 'center' in reconstruction)
+        when the sample stage moves up.                                                        
     """
     posRefPos = refYofX0 
                                 
@@ -468,21 +481,21 @@ def centerAxis(axisShift=12.5, refYofX0=14.976):
     samStage = am49
     posStage = am20      
                 
-	### for SAT                
-	#    samStage = am49
-	#    posStage = am46
+    ### for SAT                
+    #    samStage = am49
+    #    posStage = am46
                
-	##### AHutch tomo configurations -- end                    
+    ##### AHutch tomo configurations -- end                    
 
-	####### BHutch tomo configurations -- start              
-	#### for SAT                
-	#    samStage = bm63
-	#    posStage = bm57
-	#                
-	#### for LAT
-	##    samStage = bm58
-	##    posStage = bm4
-	####### BHutch tomo configurations -- end                   
+    ####### BHutch tomo configurations -- start              
+    #### for SAT                
+    #    samStage = bm63
+    #    posStage = bm57
+    #                
+    #### for LAT
+    ##    samStage = bm58
+    ##    posStage = bm4
+    ####### BHutch tomo configurations -- end                   
 
     samStageOffset = axisShift * (posStage.position - posRefPos)/1000.0  
     print(samStageOffset)
@@ -490,11 +503,17 @@ def centerAxis(axisShift=12.5, refYofX0=14.976):
     print('done')
 
  
-def DimaxRadiography(exposureTime=0.1, frmRate=9, acqPeroid=30,   # FIXME: typo
-                    samInPos=0, samOutPos=7,
-                    roiSizeX=2016, roiSizeY=2016,
-                    repeat=1, delay=600,
-                    scanMode=0):
+def DimaxRadiography(
+        exposureTime=0.1, 
+        frmRate=9, 
+        acqPeriod=30,
+        samInPos=0, 
+        samOutPos=7,
+        roiSizeX=2016, 
+        roiSizeY=2016,
+        repeat=1, 
+        delay=600,
+        scanMode=0):
 
     samStage = am49; station = 'AHutch'
     #samStage = bm63; station = 'BHutch'
@@ -504,7 +523,7 @@ def DimaxRadiography(exposureTime=0.1, frmRate=9, acqPeroid=30,   # FIXME: typo
     rotStage = bm82
 
     A_shutter.open()
-    numImage = frmRate * acqPeroid + 20
+    numImage = frmRate * acqPeriod + 20
     camShutterMode = "Rolling"
     filepath_top = caputRecorder_filepath.value
 
@@ -521,20 +540,23 @@ def DimaxRadiography(exposureTime=0.1, frmRate=9, acqPeroid=30,   # FIXME: typo
 #                str(A_mirror1.angle.value)+'mrad_USArm'+str(am30.position)+\
 #                '_monoY_'+str(am26.position)+'_'+station)
 
-	# det.cam.nd_attributes_file.put("DynaMCTDetectorAttributes.xml")
-	# if hasattr(det, "hdf1"):
-	#     det.hdf1.xml_layout_file.put("DynaMCTHDFLayout.xml")
+    # det.cam.nd_attributes_file.put("DynaMCTDetectorAttributes.xml")
+    # if hasattr(det, "hdf1"):
+    #     det.hdf1.xml_layout_file.put("DynaMCTHDFLayout.xml")
 
     for ii in range(repeat):
-		tomo_shutter.close()
-		timestamp = [x for x in time.asctime().rsplit(' ') if x!='']
-		
-		filepath = os.path.join(filepath_top, \
+        tomo_shutter.close()
+        timestamp = [x for x in time.asctime().rsplit(' ') if x!='']
+        timestamp = ''.join(timestamp[0:3]) \
+                    + '_' + timestamp[3].replace(':','_') \
+                    + '_' + timestamp[4]
+        
+        filepath = os.path.join(filepath_top, \
                    caputRecorder1.value+ \
                    caputRecorder2.value.zfill(3)+'_'+ 'Radiography_'+\
                    caputRecorder4.value+'_'+\
                    'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
-                   timestamp[0] + timestamp[1] + timestamp[2] + '_' + timestamp[3].replace(':','_') + '_' + timestamp[4] + '_'+\
+                   timestamp + '_'+\
                    cam+'_'+caputRecorder5.value+'x'+'_'+\
                    caputRecorder6.value+'mm'+'_'+\
                    str(exposureTime*1000)+'msecExpTime_'+\
@@ -543,70 +565,70 @@ def DimaxRadiography(exposureTime=0.1, frmRate=9, acqPeroid=30,   # FIXME: typo
                    caputRecorder9.value+'_'+\
                    str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+str(int(am30.position*1000)/1000.0)+\
                    '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station)     
-		filename = caputRecorder_filename.value   
+        filename = caputRecorder_filename.value   
     
-		det.cam.acquire.put("Done")
+        det.cam.acquire.put("Done")
 
-		det.cam.pco_trigger_mode.put("Auto")
-		det.cam.pco_is_frame_rate_mode.put("DelayExp")
-		det.cam.pco_live_view.put("No")
-		det.cam.size.size_x.put(roiSizeX)
-		det.cam.size.size_y.put(roiSizeY)
-		det.cam.acquire_period.put(0)
+        det.cam.pco_trigger_mode.put("Auto")
+        det.cam.pco_is_frame_rate_mode.put("DelayExp")
+        det.cam.pco_live_view.put("No")
+        det.cam.size.size_x.put(roiSizeX)
+        det.cam.size.size_y.put(roiSizeY)
+        det.cam.acquire_period.put(0)
 
-		if hasattr(det, "hdf1"):
-			det.hdf1.capture.put("Done")
-			det.hdf1.create_directory.put(-5)	# TODO: Why -5?
-			det.hdf1.file_number.put(caputRecorder10.value)
-			det.hdf1.enable.put(1)
-			det.hdf1.auto_increment.put("Yes")
-			det.hdf1.num_capture.put(numImage)
-			det.hdf1.num_captured.put(numImage)
-			det.hdf1.file_path.put(filepath)
-			det.hdf1.file_name.put(filename)
-			det.hdf1.file_template.put("%s%s_%4.4d.hdf")
-			det.hdf1.auto_save.put("Yes")
-			det.hdf1.file_write_mode.put("Stream")
-			det.hdf1.capture.put("Capture", wait=False)
-			time.sleep(2)  
+        if hasattr(det, "hdf1"):
+            det.hdf1.capture.put("Done")
+            det.hdf1.create_directory.put(-5)   # TODO: Why -5?
+            det.hdf1.file_number.put(caputRecorder10.value)
+            det.hdf1.enable.put(1)
+            det.hdf1.auto_increment.put("Yes")
+            det.hdf1.num_capture.put(numImage)
+            det.hdf1.num_captured.put(numImage)
+            det.hdf1.file_path.put(filepath)
+            det.hdf1.file_name.put(filename)
+            det.hdf1.file_template.put("%s%s_%4.4d.hdf")
+            det.hdf1.auto_save.put("Yes")
+            det.hdf1.file_write_mode.put("Stream")
+            det.hdf1.capture.put("Capture", wait=False)
+            time.sleep(2)  
 
         samStage.move(samInPos)
-		det.cam.num_images.put(numImage-20)
-		det.cam.frame_type.put('0')
-		det.cam.acquire.put("Acquire")
-		det.cam.pco_dump_counter.put('0')
-		det.cam.pco_imgs2dump.put(numImage-20)
-		det.cam.pco_dump_camera_memory.put(1)
+        det.cam.num_images.put(numImage-20)
+        det.cam.frame_type.put('0')
+        det.cam.acquire.put("Acquire")
+        det.cam.pco_dump_counter.put('0')
+        det.cam.pco_imgs2dump.put(numImage-20)
+        det.cam.pco_dump_camera_memory.put(1)
         print('data is done')
 
-		det.cam.num_images.put(10)
+        det.cam.num_images.put(10)
         samStage.move(samOutPos)
-		det.cam.frame_type.put('2')
-		det.cam.acquire.put("Acquire")
-		det.cam.pco_dump_counter.put('0')
-		det.cam.pco_imgs2dump.put(10)
-		tomo_shutter.open()
-		det.cam.pco_dump_camera_memory.put(1)
-		det.cam.acquire.put("Done")
+        det.cam.frame_type.put('2')
+        det.cam.acquire.put("Acquire")
+        det.cam.pco_dump_counter.put('0')
+        det.cam.pco_imgs2dump.put(10)
+        tomo_shutter.open()
+        det.cam.pco_dump_camera_memory.put(1)
+        det.cam.acquire.put("Done")
         print('flat is done')
 
         # tomo_shutter.open()
         samStage.move(samInPos)
-		det.cam.frame_type.put('1')
-		det.cam.acquire.put("Acquire")
-		det.cam.pco_dump_counter.put('0')
-		det.cam.pco_imgs2dump.put(10)
-		det.cam.pco_dump_camera_memory.put(1)
-		det.cam.acquire.put("Done")
+        det.cam.frame_type.put('1')
+        det.cam.acquire.put("Acquire")
+        det.cam.pco_dump_counter.put('0')
+        det.cam.pco_imgs2dump.put(10)
+        det.cam.pco_dump_camera_memory.put(1)
+        det.cam.acquire.put("Done")
         print('dark is done')
 
-		if hasattr(det, "hdf1"):
-			det.hdf1.capture.put("Done", wait=False)
-		det.cam.image_mode.put("Continuous")
+        if hasattr(det, "hdf1"):
+            det.hdf1.capture.put("Done", wait=False)
+        det.cam.image_mode.put("Continuous")
 
-		caputRecorder10.put(det.hdf1.file_number.value)
-		if caputRecorder3.value == 'Yes':
-			caputRecorder2.put(int(caputRecorder2.value)+1)
+        caputRecorder10.put(det.hdf1.file_number.value)
+        if caputRecorder3.value == 'Yes':
+            caputRecorder2.put(int(caputRecorder2.value)+1)
 
         print(str(ii), 'the acquisition is done at ', time.asctime())
         if ii != repeat-1:
@@ -617,6 +639,250 @@ def DimaxRadiography(exposureTime=0.1, frmRate=9, acqPeroid=30,   # FIXME: typo
     A_shutter.close()
     print('Radiography acquisition finished!')
 
+
+def EdgeRadiography(
+        exposureTime=0.1, 
+        frmRate = 9, 
+        acqPeriod = 30,
+        samInPos=0, 
+        samOutPos=5,
+        roiSizeX = 2560, 
+        roiSizeY = 1300,
+        repeat=1, 
+        delay=300,
+        scanMode=0):
+
+    station = 'AHutch'
+    # station = 'BHutch'   
+    samStage = am49
+    posStage = am20
+    rotStage = bm82
+    pso = pso2
+    BL = "2bmb"
+    shutter = "2bma:A_shutter"                
+
+    shutter = A_shutter
+    shutter.open()
+    tomo_shutter.close()
+
+    numImage = frmRate * acqPeriod
+                
+    if scanMode in (0, 1, 2):
+        camScanSpeed = "Normal Fast Fastest".split()[scanMode]
+    else:
+        print("Wrong camera scan mode! Quit...")
+        return False
+
+    # cam = "dimax"; det = pco_dimax
+    cam = "edge"; det = pco_edge
+    camShutterMode = "Rolling"                
+
+    filepath_top = caputRecorder_filepath.value
+
+    #    filepath = os.path.join(filepath_top, caputRecorder1.value+ \
+    #                caputRecorder2.value.zfill(3)+'_'+ 'Radiography_' +\
+    #                caputRecorder4.value+'_'+\
+    #                      'YPos'+str(am20.position)+'mm_'+\
+    #                cam+'_'+caputRecorder5.value+'x'+'_'+\
+    #                caputRecorder16.value+'mm'+'_'+\
+    #                str(exposureTime*1000)+'msecExpTime_'+'DegPerSec_'+\
+    #                camShutterMode+'_'+caputRecorder7.value+'um'+\
+    #                caputRecorder8.value+'_'+\
+    #                caputRecorder9.value+'_'+\
+    #                str(A_mirror1.angle.value)+'mrad_USArm'+\
+    #                str(am30.position)+'_monoY_'+\
+    #                str(am26.position)+'_'+station)
+
+    for ii in range(repeat):
+        timestamp = [x for x in time.asctime().rsplit(' ') if x!='']
+        timestamp = ''.join(timestamp[0:3]) \
+                    + '_' + timestamp[3].replace(':','_') \
+                    + '_' + timestamp[4]
+
+        filepath = os.path.join(filepath_top, \
+                   caputRecorder1.value+ \
+                   caputRecorder2.value.zfill(3)+'_'+ 'Radiography_'+\
+                   caputRecorder4.value+'_'+\
+                   'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
+                   timestamp + '_'+\
+                   cam+'_'+caputRecorder5.value+'x'+'_'+\
+                   caputRecorder6.value+'mm'+'_'+\
+                   str(exposureTime*1000)+'msecExpTime_'+\
+                   camShutterMode+'_'+caputRecorder7.value+'um'+\
+                   caputRecorder8.value+'_'+\
+                   caputRecorder9.value+'_'+\
+                   str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
+                   str(int(am30.position*1000)/1000.0)+'_monoY_'+\
+                   str(int(am26.position*1000)/1000.0)+'_'+station)
+
+        filename = caputRecorder_filename.value
+    
+        det.cam.acquire.put("Done")
+
+        if hasattr(det, "hdf1"):
+            det.hdf1.capture.put("Done",)
+            det.hdf1.CreateDirectory.put(-5)
+            det.hdf1.FileNumber.put(caputRecorder10.value)
+
+        det.cam.pco_trigger_mode.put("Auto")
+        det.cam.ImageMode.put("Multiple")
+        det.cam.NumImages.put(numImage)
+        det.cam.pco_edge_fastscan.put(camScanSpeed)
+        det.cam.pco_trigger_mode.put("Auto")
+        det.cam.SizeX.put(str(roiSizeX))
+        det.cam.SizeY.put(str(roiSizeY))
+        det.cam.pco_global_shutter.put(camShutterMode)
+        det.cam.pco_is_frame_rate_mode.put("DelayExp")
+        det.cam.acquire_period.put(0)
+        det.cam.frame_type.put(0)
+
+        if hasattr(det, "hdf1"):
+            # FIXME: check these!!!
+            det.hdf1.enable_callbacks.put(1)
+            det.hdf1.auto_increment.put("Yes")
+            det.hdf1.num_capture.put(str(numImage+20))
+            det.hdf1.num_capture_RBV.put(str(numImage+20))
+            det.hdf1.num_captured_RBV.put("0")
+            det.hdf1.file_path.put(filepath)
+            det.hdf1.file_name.put(filename)
+            det.hdf1.file_template.put("%s%s_%4.4d.hdf")
+            det.hdf1.auto_save.put("Yes")
+            det.hdf1.file_write_mode.put("Stream")
+                      
+            det.hdf1.capture.put("Capture", wait=False)
+        time.sleep(2)  
+                                    
+        det.cam.acquire.put("Acquire")
+        print('data is done')
+    
+        det.cam.num_images.put(10)
+        _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, PSO=pso)    
+        print('flat is done')
+             
+        _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, PSO=pso)    
+        print('dark is done')
+    
+        shutter.close()
+        tomo_shutter.close()
+        det.cam.image_mode.put("Continuous")
+
+        if hasattr(det, "hdf1"):
+            caputRecorder10.put(det.hdf1.file_number.value)
+        if caputRecorder3.value == 'Yes':
+            caputRecorder2.put(str(1+int(caputRecorder2.value)))
+
+        print(str(ii), 'the acquisition is done at ', time.asctime())
+        if ii != repeat-1:
+            time.sleep(delay)
+                 
+                
+    print('Radiography acquisition finished!')
+
+
+def _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter, PSO=None):
+    PSO = PSO or pso1
+    det = pco_edge
+
+    samStage.move(str(samOutPos), wait=False)
+    PSO.scan_control.put("Standard")
+    shutter.open()
+    time.sleep(5)
+    det.cam.frame_type.put(2)
+    det.cam.num_images.put(10)
+    
+    det.cam.pco_trigger_mode.put("Auto")
+    det.cam.acquire.put("Acquire")
+
+    PSO.start_pos.put(0.00000)
+    PSO.end_pos.put(6.0000)
+    PSO.scan_delta.put(0.3)
+    PSO.slew_speed.put(1)
+    rotStage.velocity.put(3)
+    rotStage.acceleration.put(1)
+    PSO.taxi()
+    PSO.fly()
+    rotStage.velocity.put(50)
+    rotStage.move(0)
+    
+    shutter.close()
+    time.sleep(5)            
+    #    while det.cam.num_capture_RBV.value != det.cam.num_captured_RBV.value:
+    #        time.sleep(1)                
+    det.cam.acquire.put("Done")
+    samStage.move(samInPos)
+    # set for white field -- end
+
+
+def _edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, PSO=None):
+    PSO = PSO or pso1
+    det = pco_edge
+
+    PSO.scan_control.put("Standard")
+    shutter.close()
+    time.sleep(5)
+            
+    det.cam.frame_type.put(1)
+    det.cam.num_images.put(10)
+
+    det.cam.pco_trigger_mode.put("Auto")
+    det.cam.acquire.put("Acquire")
+        
+#    PSO.start_pos.put(0.00000)
+#    PSO.end_pos.put(6.0000)
+#    PSO.scan_delta.put(0.3)
+#    PSO.slew_speed.put(1)
+#    rotStage.velocity.put(3)
+#    rotStage.acceleration.put(1)
+#    PSO.taxi()
+#    PSO.fly()
+#    rotStage.velocity.put(50)
+#    rotStage.move(0)
+             
+    #    while det.cam.num_capture_RBV.value != det.cam.num_captured_RBV.value:
+    #        time.sleep(1)                
+    det.cam.acquire.put("Done")
+    samStage.move(samInPos)
+
+
 # TODO: What do we need next?
 #   InterlaceScan() and its members
 #     DIMAX or Edge?
+
+"""
+A:    If we test interlaceScan, I will use 
+
+    posStage = 2bma:m20
+    samStage = 2bma:m49
+    rotStage = 2bmb:m82
+    Detector will be 'edge'.
+"""
+
+def InterlaceScan(
+        exposureTime=0.006, 
+        samInPos=0, 
+        samOutPos=-4,
+        roiSizeX = 2560, 
+        roiSizeY = 800, 
+        trigTemp = 550, 
+        delay = 0, 
+        repeat = 1, 
+        interval = 60,
+        flatPerScan = 0, 
+        darkPerScan = 0,                                                                    
+        accl = 60.0):
+    cam = "edge" 
+    shutter = A_shutter
+    samStage = am49
+    posStage = am20               
+    rotStage = bm82
+    pso = pso2
+    # station = 'BHutch'
+    BL = "2bmb"
+    pso.scan_control.put("Custom")
+    interlaceFlySub_2bmb.proc.put(1_
+    slewSpeed = pso.slew_speed.value
+    if samStage.user_setpoint.pvname.startswith('2bma'):
+        station = 'AHutch'
+    elif samStage.user_setpoint.pvname.startswith('2bmb'):    
+        station = 'BHutch' 
+    raise Exception("work-in-progress") # FIXME:

@@ -12,7 +12,7 @@ A_slit1_h_center = EpicsSignal("2bma:Slit1Hcenter", name="A_slit1_h_center")
 tomo_shutter = Motor_Shutter("2bma:m23", name="tomo_shutter")
 
 # generic motor name: {station}m{number}
-am7 = EpicsMotor("2bma:m7", name="am7")    # ? XIASLIT
+am7  = EpicsMotor("2bma:m7",  name="am7")     # ? XIASLIT
 am25 = EpicsMotor("2bma:m25", name="am25")    # ? DMM_USX
 am26 = EpicsMotor("2bma:m26", name="am26")    # ? DMM_USY_OB
 am27 = EpicsMotor("2bma:m27", name="am27")    # ? DMM_USY_IB
@@ -21,6 +21,10 @@ am29 = EpicsMotor("2bma:m29", name="am29")    # ? DMM_DSY
 am30 = EpicsMotor("2bma:m30", name="am30")    # ? USArm
 am31 = EpicsMotor("2bma:m31", name="am31")    # ? DSArm
 am32 = EpicsMotor("2bma:m32", name="am32")    # ? M2Y
+
+# report these in default wa() command
+BlueskyMagics.positioners += list(am7, am25, am26, am27, am28, am29, am30, am31, am32)
+BlueskyMagics.positioners += list(tomo_shutter.motor)
 
 
 # TODO: should some of these be part of a Device? sample&rot&pos stages are grouped, for example
@@ -34,22 +38,17 @@ furnaceY = EpicsMotor("2bma:m55", name="furnaceY")
 bm4      = EpicsMotor("2bmb:m4",  name="bm4")               # posStage in B LAT
 bm57     = EpicsMotor("2bmb:m57", name="bm57")              # posStage in B SAT
 
+BlueskyMagics.positioners += list(am20, am46, am49, bm82, bm63, bm100)
+BlueskyMagics.positioners += list(furnaceY, bm4, bm57)
+
+
+# TODO: these are NOT motors!
+
 pso1     = PSO_Device("2bmb:PSOFly1:", name="pso1")
 pso2     = PSO_Device("2bmb:PSOFly2:", name="pso2")
 tableFly2_sseq_PROC = EpicsSignal(
           "2bmb:tableFly2:sseq2.PROC", name="tableFly2_sseq_PROC")
 
-try:
-    pco_dimax = MyPcoDetector("PCOIOC2:", name="pco_dimax")  # TODO: check PV prefix
-except TimeoutError:
-    print("Could not connect to PCOIOC2:pco_dimax - is the IOC off?")
-
-try:
-    pco_edge = MyPcoDetector("PCOIOC3:", name="pco_edge")  # TODO: check PV prefix
-except TimeoutError:
-    print("Could not connect to PCOIOC3:pco_edge - is the IOC off?")
-
-# TODO: these are NOT motors!
 caputRecorder1 = EpicsSignal("2bmb:caputRecorderGbl_1", name="caputRecorder1", string=True)     # prefix
 caputRecorder2 = EpicsSignal("2bmb:caputRecorderGbl_2", name="caputRecorder2", string=True)     # prefix #
 caputRecorder3 = EpicsSignal("2bmb:caputRecorderGbl_3", name="caputRecorder3", string=True)     # auto-increase #
