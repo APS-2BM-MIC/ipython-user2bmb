@@ -37,6 +37,7 @@ from ophyd import SingleTrigger, AreaDetector, PcoDetectorCam
 from ophyd import Component, Device, EpicsMotor, EpicsSignal, EpicsSignalWithRBV
 from ophyd import HDF5Plugin, ImagePlugin
 from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
+from APS_BlueSky_tools.devices import userCalcsDevice
 
 
 class ServoRotationStage(EpicsMotor):
@@ -72,8 +73,8 @@ class AB_Shutter(Device):
         B_shutter.close()
 
     """
-    pss_open = Component(Signal, ":open")
-    pss_close = Component(Signal, ":close")
+    pss_open = Component(EpicsSignal, ":open")
+    pss_close = Component(EpicsSignal, ":close")
     
     def open(self):
         """tells PSS to open the shutter"""
@@ -226,8 +227,16 @@ tableFly2_sseq_PROC = EpicsSignal(
     "2bmb:tableFly2:sseq2.PROC", 
     name="tableFly2_sseq_PROC")
 
-pco_dimax = MyPcoDetector("PCOIOC2:", name="pco_dimax")  # TODO: check PV prefix
-pco_edge = MyPcoDetector("PCOIOC3:", name="pco_edge")  # TODO: check PV prefix
+try:
+    pco_dimax = MyPcoDetector("PCOIOC2:", name="pco_dimax")  # TODO: check PV prefix
+except TimeoutError:
+    print("Could not connect to PCOIOC2:pco_dimax - is the IOC off?")
+
+try:
+    pco_edge = MyPcoDetector("PCOIOC3:", name="pco_edge")  # TODO: check PV prefix
+except TimeoutError:
+    print("Could not connect to PCOIOC3:pco_edge - is the IOC off?")
+
 
 caputRecorder1 = EpicsSignal("2bmb:caputRecorderGbl_1", name="caputRecorder1", string=True)
 caputRecorder2 = EpicsSignal("2bmb:caputRecorderGbl_2", name="caputRecorder2", string=True)
@@ -254,6 +263,7 @@ userCalcs_2bmb = userCalcsDevice("2bmb:", name="userCalcs_2bmb")
 
 
 def make_timestamp():
+    """such as: 2018-01-12 15:40:46 is FriJan12_15_40_46_2018"""
     timestamp = [x for x in time.asctime().rsplit(' ') if x!='']
     timestamp = ''.join(timestamp[0:3]) \
                 + '_' + timestamp[3].replace(':','_') \
@@ -889,7 +899,7 @@ def _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, PSO=
     rotStage.velocity.put(50.00000)
     time.sleep(1)
     rotStage.move(0.00000)
-#    epics.caput(shutter+":close.VAL",1, wait=True, timeout=1000.0)                  
+    # shutter.close()
     while (det.hdf1.num_captured.value != numProjPerSweep):    
         time.sleep(1)                    
 
@@ -1077,7 +1087,15 @@ def InterlaceScan(
                str(int(am30.position*1000)/1000.0)+\
                '_monoY_'+\
                str(int(am26.position*1000)/1000.0)+'_'+\
-               station) 
+               station)
+        """
+        example:
+        
+        's:/data/2017_12/Commissioning/Exp005_TaoS_test_YPos12.58mm
+        _FriJan12_15_53_23_2018_edge_10x_200mm_1.0msecExpTime
+        _1.0DegPerSec_Rolling_20umLuAG_1mmAl0.5mmCu15mmSi0.79mmSn
+        _0.0mrad_USArm1.149_monoY_-16.0_AHutch'
+        """
 
         numImage = interlaceFlySub_2bmb.vale
         
@@ -1152,7 +1170,7 @@ def InterlaceScan(
 #         frate = int(imgPerSubCycle/secPerSubCycle + 100)                          
 #         det.hdf1.file_number.put(caputRecorder10.value)
 #         savedata_2bmb.scan_number.put(caputRecorder10.value)
-#         # det.hdf1.file_number.put(userCalcs_2bmb.calc3)
+#         # det.hdf1.file_number.put(userCalcs_2bmb.calc3.val.value)
 #         print("Scan starts ...")
 #         shutter.open()
 #                     
