@@ -22,9 +22,9 @@ am30 = EpicsMotor("2bma:m30", name="am30")    # ? USArm
 am31 = EpicsMotor("2bma:m31", name="am31")    # ? DSArm
 am32 = EpicsMotor("2bma:m32", name="am32")    # ? M2Y
 
-# report these in default wa() command
-BlueskyMagics.positioners += list(am7, am25, am26, am27, am28, am29, am30, am31, am32)
-BlueskyMagics.positioners += list(tomo_shutter.motor)
+# report these in default `wa` command
+BlueskyMagics.positioners += [am7, am25, am26, am27, am28, am29, am30, am31, am32]
+BlueskyMagics.positioners += [tomo_shutter.motor]
 
 
 # TODO: should some of these be part of a Device? sample&rot&pos stages are grouped, for example
@@ -38,8 +38,8 @@ furnaceY = EpicsMotor("2bma:m55", name="furnaceY")
 bm4      = EpicsMotor("2bmb:m4",  name="bm4")               # posStage in B LAT
 bm57     = EpicsMotor("2bmb:m57", name="bm57")              # posStage in B SAT
 
-BlueskyMagics.positioners += list(am20, am46, am49, bm82, bm63, bm100)
-BlueskyMagics.positioners += list(furnaceY, bm4, bm57)
+BlueskyMagics.positioners += [am20, am46, am49, bm82, bm63, bm100]
+BlueskyMagics.positioners += [furnaceY, bm4, bm57]
 
 
 # TODO: these are NOT motors!
@@ -49,6 +49,7 @@ pso2     = PSO_Device("2bmb:PSOFly2:", name="pso2")
 tableFly2_sseq_PROC = EpicsSignal(
           "2bmb:tableFly2:sseq2.PROC", name="tableFly2_sseq_PROC")
 
+# TODO: assign more meaningful names?
 caputRecorder1 = EpicsSignal("2bmb:caputRecorderGbl_1", name="caputRecorder1", string=True)     # prefix
 caputRecorder2 = EpicsSignal("2bmb:caputRecorderGbl_2", name="caputRecorder2", string=True)     # prefix #
 caputRecorder3 = EpicsSignal("2bmb:caputRecorderGbl_3", name="caputRecorder3", string=True)     # auto-increase #
@@ -61,3 +62,5 @@ caputRecorder9 = EpicsSignal("2bmb:caputRecorderGbl_9", name="caputRecorder9", s
 caputRecorder10 = EpicsSignal("2bmb:caputRecorderGbl_10", name="caputRecorder10", string=True)  # proj #
 caputRecorder_filepath = EpicsSignal("2bmb:caputRecorderGbl_filepath", name="caputRecorder_filepath", string=True)
 caputRecorder_filename = EpicsSignal("2bmb:caputRecorderGbl_filename", name="caputRecorder_filename", string=True)
+
+userCalcs_2bmb = userCalcsDevice("2bmb:", name="userCalcs_2bmb")
