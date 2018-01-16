@@ -1,6 +1,13 @@
 print(__file__)
 
 
+USER2BMB_ROOT_DIR = "/local/user2bmb"
+
+aps_current = EpicsSignalRO("S:SRcurrentAI", name="aps_current")
+
+## Beam Monitor Counts
+#bs_bm2 = EpicsSignalRO('BL14B:Det:BM2', name='bs_bm2')
+
 # note: see 10-devices.py for how Devices are constructed
 
 A_shutter = AB_Shutter("2bma:A_shutter", name="A_shutter")
@@ -44,5 +51,10 @@ caputRecorder9 = EpicsSignal("2bmb:caputRecorderGbl_9", name="caputRecorder9", s
 caputRecorder10 = EpicsSignal("2bmb:caputRecorderGbl_10", name="caputRecorder10", string=True)  # proj #
 caputRecorder_filepath = EpicsSignal("2bmb:caputRecorderGbl_filepath", name="caputRecorder_filepath", string=True)
 caputRecorder_filename = EpicsSignal("2bmb:caputRecorderGbl_filename", name="caputRecorder_filename", string=True)
+
+interlaceFlySub_2bmb = SynApps_Record_asub("2bmb:iFly:interlaceFlySub", name="interlaceFlySub_2bmb")
+savedata_2bmb = SynApps_saveData_Device("2bmb:saveData", name="savedata_2bmb")
+
+preTemp = EpicsSignal("2bmb:ET2k:1:Temperature.VAL", name="preTemp")
 
 userCalcs_2bmb = userCalcsDevice("2bmb:", name="userCalcs_2bmb")
