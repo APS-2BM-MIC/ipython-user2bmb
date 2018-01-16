@@ -435,6 +435,7 @@ def initEdge(samInPos=0, samStage=None, rotStage=None):
     det.cam.nd_attributes_file.put("DynaMCTDetectorAttributes.xml")
 
     det.cam.acquire.put("Done")
+
     # det.cam.acquire.put("Done")  
     det.cam.pco_trigger_mode.put("Auto")
     det.cam.image_mode.put("Continuous")
@@ -1068,7 +1069,7 @@ def InterlaceScan(
         camShutterMode = "Rolling"                
         det = pco_edge                                    
 
-        imgPerSubCycle = 1.0*interlaceFlySub_2bmb.a/interlaceFlySub_2bmb.b
+        imgPerSubCycle = 1.0*interlaceFlySub_2bmb.a.value/interlaceFlySub_2bmb.b.value
         secPerSubCycle = 180.0/pso.slew_speed.value
         frate = int(imgPerSubCycle/secPerSubCycle + 5)
         det.hdf1.file_number.put(caputRecorder10.value)
@@ -1120,7 +1121,7 @@ def InterlaceScan(
         _0.0mrad_USArm1.149_monoY_-16.0_AHutch'
         """
 
-        numImage = interlaceFlySub_2bmb.vale
+        numImage = interlaceFlySub_2bmb.vale.value
         
         # test camera -- start
         _edgeTest(camScanSpeed,camShutterMode,roiSizeX=roiSizeX,roiSizeY=roiSizeY,PSO=PSO)
@@ -1188,7 +1189,7 @@ def InterlaceScan(
 #     
 # #        scanDelta = 1.0*angEnd/numProjPerSweep
 # #        acclTime = 1.0*slewSpeed/accl
-#         imgPerSubCycle = 1.0*interlaceFlySub_2bmb.a/interlaceFlySub_2bmb.b
+#         imgPerSubCycle = 1.0*interlaceFlySub_2bmb.a.value/interlaceFlySub_2bmb.b.value
 #         secPerSubCycle = 180.0/pso.slew_speed.value
 #         frate = int(imgPerSubCycle/secPerSubCycle + 100)                          
 #         det.hdf1.file_number.put(caputRecorder10.value)
@@ -1208,7 +1209,7 @@ def InterlaceScan(
 #             filepathString, filenameString, int(det.hdf1.file_number.value))
 #         print("Your scan is logged in ", logFileName)
 #         
-#         numImage = interlaceFlySub_2bmb.vale
+#         numImage = interlaceFlySub_2bmb.vale.value
 # #        numImage = det.cam.pco_max_imgs_seg0.value # camPrefix+":cam1:pco_max_imgs_seg0_RBV.VAL"
 #         
 #         # test camera -- start
