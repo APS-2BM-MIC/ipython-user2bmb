@@ -2,6 +2,8 @@
 """
 2-BM-B tomography macros for BlueSky
 
+TODO: EdgeMultiPosScan
+
 TOMO FUNCTIONS
 
 * _initFilepath
@@ -14,8 +16,12 @@ TOMO FUNCTIONS
 * centerAxis
 * DimaxRadiography
 * EdgeRadiography
-* _edgeAcquireFlat
+* _edgeTest
+* _edgeSet
+* _edgeAcquisition
+* _edgeInterlaceAcquisition
 * _edgeAcquireDark
+* _edgeAcquireFlat
 * _edgeTest
 * InterlaceScan
 
@@ -25,12 +31,38 @@ ADDED FUNCTIONS
 * process_tableFly2_sseq_record
 * wait_temperature
 
+DEVICES
+
+* ServoRotationStage
+* Mirror1_A
+* AB_Shutter
+* Motor_Shutter
+* PSO_Device
+* MyPcoCam
+* MyHDF5Plugin
+* MyPcoDetector
+* SynApps_Record_asub
+* SynApps_saveData_Device
+
 IOCs
 
-2bma   /net/s2dserv/xorApps/epics/synApps_5_8/ioc/2bmb/iocBoot/ioc2bma/st.cmd
-2bmb   /net/s2dserv/xorApps/epics/synApps_5_8/ioc/2bmb/iocBoot/ioc2bmb/st.cmd
+======  =======================================================================
+prefix  startup file
+======  =======================================================================
+2bma    /net/s2dserv/xorApps/epics/synApps_5_8/ioc/2bmb/iocBoot/ioc2bma/st.cmd
+2bmb    /net/s2dserv/xorApps/epics/synApps_5_8/ioc/2bmb/iocBoot/ioc2bmb/st.cmd
+======  =======================================================================
 
+
+Q: Dimax or Edge?
+A:    If we test interlaceScan, will use 
+
+    posStage = 2bma:m20
+    samStage = 2bma:m49
+    rotStage = 2bmb:m82
+    Detector will be 'edge'.
 """
+
 
 import time
 from ophyd import SingleTrigger, AreaDetector, PcoDetectorCam
@@ -126,33 +158,9 @@ class PSO_Device(Device):
         self.pso_fly.put("Fly")
 
 
-class SynApps_Record_asub(Device):
-    """asub record, just the fields used here"""
-    # https://wiki-ext.aps.anl.gov/epics/index.php/RRM_3-14_Array_Subroutine
-    
-    proc = Component(EpicsSignal, ".PROC")
-    a = Component(EpicsSignal, ".A")
-    b = Component(EpicsSignal, ".B")
-    vale = Component(EpicsSignal, ".VALE")
-
-
-class SynApps_saveData_Device(Device):
-    """
-    saveData support, just the fields used here
-    
-    USAGE::
-
-        savedata = SynApps_saveData_Device("2bmb:saveData" name="savedata")
-        savedata.scan_number.put(5)
-        savedata.base_name.put("bane name")
-
-    """
-
-    scan_number = Component(EpicsSignal, "_scanNumber")
-    base_name = Component(EpicsSignal, "_baseName")
-
-
 class MyPcoCam(PcoDetectorCam):    # TODO: check this
+    """PCO Dimax detector"""
+    # FIXME: make different one for Edge PVs
     array_callbacks = Component(EpicsSignal, "ArrayCallbacks")
     pco_cancel_dump = Component(EpicsSignal, "pco_cancel_dump")
     pco_live_view = Component(EpicsSignal, "pco_live_view")
@@ -186,6 +194,31 @@ class MyPcoDetector(SingleTrigger, AreaDetector):
         root="/",                   # root path for HDF5 files (for databroker filestore)
         write_path_template="/tmp", # path for HDF5 files (for EPICS area detector)
         )
+
+class SynApps_Record_asub(Device):
+    """asub record, just the fields used here"""
+    # https://wiki-ext.aps.anl.gov/epics/index.php/RRM_3-14_Array_Subroutine
+    
+    proc = Component(EpicsSignal, ".PROC")
+    a = Component(EpicsSignal, ".A")
+    b = Component(EpicsSignal, ".B")
+    vale = Component(EpicsSignal, ".VALE")
+
+
+class SynApps_saveData_Device(Device):
+    """
+    saveData support, just the fields used here
+    
+    USAGE::
+
+        savedata = SynApps_saveData_Device("2bmb:saveData" name="savedata")
+        savedata.scan_number.put(5)
+        savedata.base_name.put("bane name")
+
+    """
+
+    scan_number = Component(EpicsSignal, "_scanNumber")
+    base_name = Component(EpicsSignal, "_baseName")
 
 
 # ---------------------------------------------------------------------------------
@@ -991,16 +1024,6 @@ def _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter, PSO
     samStage.move(samInPos)
     # set for white field -- end
 
-
-"""
-Q: Dimax or Edge?
-A:    If we test interlaceScan, will use 
-
-    posStage = 2bma:m20
-    samStage = 2bma:m49
-    rotStage = 2bmb:m82
-    Detector will be 'edge'.
-"""
 
 def wait_temperature(trigTemp):
     """wait for temperature to reach trigger temperature"""
