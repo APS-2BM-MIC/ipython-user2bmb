@@ -111,6 +111,8 @@ class PSO_Device(Device):
 
 
 class MyPcoCam(PcoDetectorCam):    # TODO: check this
+    """PCO Dimax detector"""
+    # FIXME: make different one for Edge PVs
     array_callbacks = Component(EpicsSignal, "ArrayCallbacks")
     pco_cancel_dump = Component(EpicsSignal, "pco_cancel_dump")
     pco_live_view = Component(EpicsSignal, "pco_live_view")
@@ -146,3 +148,27 @@ class MyPcoDetector(SingleTrigger, AreaDetector):
         )
 
 
+class SynApps_saveData_Device(Device):
+    """
+    saveData support, just the fields used here
+    
+    USAGE::
+
+        savedata = SynApps_saveData_Device("2bmb:saveData" name="savedata")
+        savedata.scan_number.put(5)
+        savedata.base_name.put("bane name")
+
+    """
+
+    scan_number = Component(EpicsSignal, "_scanNumber")
+    base_name = Component(EpicsSignal, "_baseName")
+
+
+class SynApps_Record_asub(Device):
+    """asub record, just the fields used here"""
+    # https://wiki-ext.aps.anl.gov/epics/index.php/RRM_3-14_Array_Subroutine
+    
+    proc = Component(EpicsSignal, ".PROC")
+    a = Component(EpicsSignal, ".A")
+    b = Component(EpicsSignal, ".B")
+    vale = Component(EpicsSignal, ".VALE")
