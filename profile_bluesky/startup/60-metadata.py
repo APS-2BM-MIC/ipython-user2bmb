@@ -25,8 +25,13 @@ import getpass
 HOSTNAME = socket.gethostname() or 'localhost' 
 USERNAME = getpass.getuser() or 'synApps_xxx_user' 
 RE.md['login_id'] = USERNAME + '@' + HOSTNAME
+RE.md['BLUESKY_VERSION'] = bluesky.__version__
 
 import os
 for key, value in os.environ.items():
-    if key.startswith("EPICS"):
+    if key.startswith("EPICS") and not key.startswith("EPICS_BASE"):
         RE.md[key] = value
+
+print("Metadata dictionary:")
+for k, v in sorted(RE.md.items()):
+    print("RE['%s']" % k, "=", v)
