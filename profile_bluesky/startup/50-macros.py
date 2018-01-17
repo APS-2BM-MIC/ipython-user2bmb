@@ -68,7 +68,8 @@ def _initFilepath():
 def setDefaultFolderStructure():
     def caput_desc(signal, description):
         """.DESC field is not part of EpicsSignal"""
-        epics.caput(signal.pvname+".DESC", description, wait=True, timeout=1000.0)
+        pvname = signal.pvname.split(".")[0] + ".DESC"
+        epics.caput(pvname, description, wait=True, timeout=1000.0)
 
     caput_desc(cpr_prefix, 'prefix')
     caput_desc(cpr_prefix_num, 'prefix #')
@@ -939,6 +940,18 @@ def EdgeRadiography(
                  
                 
     print('Radiography acquisition finished!')
+
+
+def _setPSO(slewSpeed, scanDelta, acclTime, angStart=0, angEnd=180, pso=None, rotStage=None):
+    pso = pso or pso1
+    rotStage = rotStage or bm82
+
+    pso.start_pos.put(angStart)
+    pso.end_pos.put(angEnd)
+    rotStage.velocity.put(slewSpeed)
+    pso.slew_speed.put(slewSpeed)
+    rotStage.acceleration.put(acclTime)
+    pso.scan_delta.put(scanDelta)
 
 
 def _edgeTest(camScanSpeed,camShutterMode,roiSizeX=2560,roiSizeY=2160,pso=None):
