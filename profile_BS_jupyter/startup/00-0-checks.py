@@ -1,5 +1,7 @@
 print(__file__)
 
+raise RuntimeError("This profile has not yet been configured for use.")
+
 import sys
 import os
 
