@@ -18,7 +18,7 @@ am31 = EpicsMotor("2bma:m31", name="am31")    # ? DSArm
 am32 = EpicsMotor("2bma:m32", name="am32")    # ? M2Y
 
 # report these in default `wa` command
-append_wa_motor_list(am7, am25, am26, am27, am28, am29, am30, am31, am32)
+append_wa_motor_list(am6, am7, am25, am26, am27, am28, am29, am30, am31, am32)
 append_wa_motor_list(tomo_shutter.motor)
 
 
@@ -38,3 +38,5 @@ append_wa_motor_list(furnaceY, bm4, bm57)
 
 s1m1 = EpicsMotor("2bmS1:m1", name="s1m1")
 s1m2 = EpicsMotor("2bmS1:m2", name="s1m2")
+
+append_wa_motor_list(s1m1, s1m2)
