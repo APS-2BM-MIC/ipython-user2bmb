@@ -6,6 +6,7 @@ print(__file__)
 tomo_shutter = Motor_Shutter("2bma:m23", name="tomo_shutter")
 
 # generic motor name: {station}m{number}
+am6  = EpicsMotor("2bma:m6",  name="am6")     # ?
 am7  = EpicsMotor("2bma:m7",  name="am7")     # ? XIASLIT
 am25 = EpicsMotor("2bma:m25", name="am25")    # ? DMM_USX
 am26 = EpicsMotor("2bma:m26", name="am26")    # ? DMM_USY_OB
@@ -34,3 +35,6 @@ bm57     = EpicsMotor("2bmb:m57", name="bm57")              # posStage in B SAT
 
 append_wa_motor_list(am20, am46, am49, bm82, bm63, bm100)
 append_wa_motor_list(furnaceY, bm4, bm57)
+
+s1m1 = EpicsMotor("2bmS1:m1", name="s1m1")
+s1m2 = EpicsMotor("2bmS1:m2", name="s1m2")
