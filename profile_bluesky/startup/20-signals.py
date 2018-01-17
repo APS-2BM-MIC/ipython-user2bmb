@@ -5,9 +5,6 @@ USER2BMB_ROOT_DIR = "/local/user2bmb"
 
 aps_current = EpicsSignalRO("S:SRcurrentAI", name="aps_current")
 
-## Beam Monitor Counts
-#bs_bm2 = EpicsSignalRO('BL14B:Det:BM2', name='bs_bm2')
-
 # note: see 10-devices.py for how Devices are constructed
 
 A_shutter = AB_Shutter("2bma:A_shutter", name="A_shutter")
