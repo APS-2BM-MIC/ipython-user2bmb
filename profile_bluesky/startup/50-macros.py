@@ -5,6 +5,12 @@ functions converted from macros_2bmb.py (PyEpics macros from Xianghui)
 """
 
 
+def auto_increment_prefix_number():
+    """increment the prefix number if permitted"""
+    if cpr_auto_increase.value == 'Yes':
+        cpr_prefix_num.put(str(int(cpr_prefix_num.value)+1))
+
+
 def make_timestamp():
     """such as: 2018-01-12 15:40:46 is FriJan12_15_40_46_2018"""
     timestamp = [x for x in time.asctime().rsplit(' ') if x!='']
@@ -54,9 +60,9 @@ def make_log_file(filepathString, filenameString, file_number):
 
 
 def _initFilepath():
-    caputRecorder_filepath.put("proj")
+    cpr_filepath.put("proj")
     path = "s:/data/2017_12/Commissioning"
-    caputRecorder_filename.put(path)
+    cpr_filename.put(path)
 
 
 def setDefaultFolderStructure():
@@ -64,28 +70,28 @@ def setDefaultFolderStructure():
         """.DESC field is not part of EpicsSignal"""
         epics.caput(signal.pvname+".DESC", description, wait=True, timeout=1000.0)
 
-    caput_desc(gbl_prefix, 'prefix')
-    caput_desc(gbl_prefix_num, 'prefix #')
-    caput_desc(gbl_auto_increase, 'auto-increase #')
-    caput_desc(gbl_sample_name, 'sample name')
-    caput_desc(gbl_lens_mag, 'lens mag')
-    caput_desc(gbl_sam_det_dist, 'sam-det dist(mm)')
-    caput_desc(gbl_scin_thickness, 'scinThickness(um)')
-    caput_desc(gbl_scin_type, 'scinType')
-    caput_desc(gbl_filter, 'filter')
-    caput_desc(gbl_proj_num, 'proj #')
+    caput_desc(cpr_prefix, 'prefix')
+    caput_desc(cpr_prefix_num, 'prefix #')
+    caput_desc(cpr_auto_increase, 'auto-increase #')
+    caput_desc(cpr_sample_name, 'sample name')
+    caput_desc(cpr_lens_mag, 'lens mag')
+    caput_desc(cpr_sam_det_dist, 'sam-det dist(mm)')
+    caput_desc(cpr_scin_thickness, 'scinThickness(um)')
+    caput_desc(cpr_scin_type, 'scinType')
+    caput_desc(cpr_filter, 'filter')
+    caput_desc(cpr_proj_num, 'proj #')
 
     caputRecorder_filename.put('proj')
-    gbl_prefix.put('Exp')
-    gbl_prefix_num.put('1')
-    gbl_auto_increase.put('Yes')
-    gbl_sample_name.put('S1')
-    gbl_lens_mag.put('10')
-    gbl_sam_det_dist.put('50')
-    gbl_scin_thickness.put('10')
-    gbl_scin_type.put('LuAG')
-    gbl_filter.put('1mmC1mmGlass')
-    gbl_proj_num.put('1')
+    cpr_prefix.put('Exp')
+    cpr_prefix_num.put('1')
+    cpr_auto_increase.put('Yes')
+    cpr_sample_name.put('S1')
+    cpr_lens_mag.put('10')
+    cpr_sam_det_dist.put('50')
+    cpr_scin_thickness.put('10')
+    cpr_scin_type.put('LuAG')
+    cpr_filter.put('1mmC1mmGlass')
+    cpr_proj_num.put('1')
                                 
 
 def process_tableFly2_sseq_record():
@@ -336,16 +342,16 @@ def DimaxRadiography(
     camShutterMode = "Rolling"
     filepath_top = caputRecorder_filepath.value
 
-#    filepath = os.path.join(filepath_top, gbl_prefix.value+ \
-#                gbl_prefix_num.value.zfill(3)+'_'+ 'Radiography_' +\
-#                gbl_sample_name.value+'_'+\
+#    filepath = os.path.join(filepath_top, cpr_prefix.value+ \
+#                cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_' +\
+#                cpr_sample_name.value+'_'+\
 #                      'YPos'+str(am20.position)+'mm_'+\
-#                cam+'_'+gbl_lens_mag.value+'x'+'_'+\
-#                gbl_sam_det_dist.value+'mm'+'_'+\
+#                cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+#                cpr_sam_det_dist.value+'mm'+'_'+\
 #                str(exposureTime*1000)+'msecExpTime_'+'DegPerSec_'+\
-#                camShutterMode+'_'+gbl_scin_thickness.value+'um'+\
-#                gbl_scin_type.value+'_'+\
-#                gbl_filter.value+'_'+\
+#                camShutterMode+'_'+cpr_scin_thickness.value+'um'+\
+#                cpr_scin_type.value+'_'+\
+#                cpr_filter.value+'_'+\
 #                str(A_mirror1.angle.value)+'mrad_USArm'+\
 #                str(am30.position)+\
 #                '_monoY_'+str(am26.position)+'_'+station)
@@ -358,17 +364,17 @@ def DimaxRadiography(
         tomo_shutter.close()
         
         filepath = os.path.join(filepath_top, \
-                   gbl_prefix.value+ \
-                   gbl_prefix_num.value.zfill(3)+'_'+ 'Radiography_'+\
-                   gbl_sample_name.value+'_'+\
+                   cpr_prefix.value+ \
+                   cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_'+\
+                   cpr_sample_name.value+'_'+\
                    'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
                    make_timestamp() + '_'+\
-                   cam+'_'+gbl_lens_mag.value+'x'+'_'+\
-                   gbl_sam_det_dist.value+'mm'+'_'+\
+                   cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+                   cpr_sam_det_dist.value+'mm'+'_'+\
                    str(exposureTime*1000)+'msecExpTime_'+\
-                   camShutterMode+'_'+gbl_scin_thickness.value+'um'+\
-                   gbl_scin_type.value+'_'+\
-                   gbl_filter.value+'_'+\
+                   camShutterMode+'_'+cpr_scin_thickness.value+'um'+\
+                   cpr_scin_type.value+'_'+\
+                   cpr_filter.value+'_'+\
                    str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
                    str(int(am30.position*1000)/1000.0)+\
                    '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+\
@@ -387,7 +393,7 @@ def DimaxRadiography(
         if hasattr(det, "hdf1"):
             det.hdf1.capture.put("Done")
             det.hdf1.create_directory.put(-5)   # TODO: Why -5?
-            det.hdf1.file_number.put(gbl_proj_num.value)
+            det.hdf1.file_number.put(cpr_proj_num.value)
             det.hdf1.enable.put(1)
             det.hdf1.auto_increment.put("Yes")
             det.hdf1.num_capture.put(numImage)
@@ -434,9 +440,8 @@ def DimaxRadiography(
             det.hdf1.capture.put("Done", wait=False)
         det.cam.image_mode.put("Continuous")
 
-        gbl_proj_num.put(det.hdf1.file_number.value)
-        if gbl_auto_increase.value == 'Yes':
-            gbl_prefix_num.put(str(int(gbl_prefix_num.value)+1))
+        cpr_proj_num.put(det.hdf1.file_number.value)
+        auto_increment_prefix_number()
 
         print(str(ii), 'the acquisition is done at ', time.asctime())
         if ii != repeat-1:
@@ -495,13 +500,13 @@ def EdgeMultiPosScan(
     samStage = am49
     posStage = am20
     rotStage = bm82
-    PSO = pso2
+    pso = pso2
                 
 ### for SAT                
 #    samStage = am49
 #    posStage = am46
 #    rotStage = bm100
-#    PSO = pso2
+#    pso = pso2
               
     BL = "2bmb"
 
@@ -519,13 +524,13 @@ def EdgeMultiPosScan(
 #    samStage = bm63
 #    posStage = bm57
 #    rotStage = bm100
-#    PSO = pso2
+#    pso = pso2
 #                
 #### for LAT
 ##    samStage = bm58
 ##    posStage = bm4
 ##    rotStage = bm82
-##    PSO = pso1
+##    pso = pso1
 #                
 #    samInInitPos = samInPos                
 #    BL = "2bmb"
@@ -535,7 +540,7 @@ def EdgeMultiPosScan(
 #    posCurr = posStage.position
 #    posStageOffset = axisShift * (posCurr - refYofX0)/1000.0
 #    samStage.set_current_position(posStageOffset)
-#    arg14.put(str(posCurr))
+#    cpr_arg14.put(str(posCurr))
                 
 #    ''' 
 #    this is the case in which the rotation axis move toward left side 
@@ -572,16 +577,16 @@ def EdgeMultiPosScan(
     det.hdf1.create_directory(-5)
                
     posInit = posStage.position
-    PSO.scan_control.put("Standard")
+    pso.scan_control.put("Standard")
     scanDelta = 1.0*(angEnd-angStart)/numProjPerSweep
     acclTime = 1.0*slewSpeed/accl
     frate = int(1.0*numProjPerSweep/(1.0*(angEnd-angStart)/slewSpeed) + 5)                
 
-    det.hdf1.file_number.put(gbl_proj_num.value)
+    det.hdf1.file_number.put(cpr_proj_num.value)
             
 #    shutter.open()
                 
-#    filepath = caputRecorder_filepath.value
+#    filepath = cpr_filepath.value
     filename = caputRecorder_filename.value
 
     filepathString = caputRecorder_filepath.value
@@ -596,7 +601,7 @@ def EdgeMultiPosScan(
     
     # test camera -- start
     print(roiSizeX,roiSizeY)
-    _edgeTest(camScanSpeed,camShutterMode,roiSizeX=roiSizeX,roiSizeY=roiSizeY,PSO=PSO)
+    _edgeTest(camScanSpeed,camShutterMode,roiSizeX=roiSizeX,roiSizeY=roiSizeY,pso=pso)
     
                 
     # sample scan -- start
@@ -616,22 +621,22 @@ def EdgeMultiPosScan(
 
 ##### heating with Eurotherm2K:3                                            
 #        filepath = os.path.join(filepath_top, \
-#               gbl_prefix.value+ \
-#               gbl_prefix_num.value.zfill(3)+'_'+ \
-#               gbl_sample_name.value+'_'+\
+#               cpr_prefix.value+ \
+#               cpr_prefix_num.value.zfill(3)+'_'+ \
+#               cpr_sample_name.value+'_'+\
 #               str(int(preTemp.value))+'C_'+\
 #               str(ii).zfill(1) + '_' + \
 #               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
 #               make_timestamp() + '_'+\
-#               cam+'_'+gbl_lens_mag.value+'x'+'_'+\
-#               gbl_sam_det_dist.value+'mm'+'_'+\
+#               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+#               cpr_sam_det_dist.value+'mm'+'_'+\
 #               str(exposureTime*1000)+'msecExpTime_'+str(slewSpeed)+'DegPerSec_'+\
 #               str(exposureTime*1000)+'msecExpTime_'+\
 #               str(slewSpeed)+'DegPerSec_'+\
 #               camShutterMode+'_'+\
-#               gbl_scin_thickness.value+'um'+\
-#               gbl_scin_type.value+'_'+\
-#               gbl_filter.value+'_'+\
+#               cpr_scin_thickness.value+'um'+\
+#               cpr_scin_type.value+'_'+\
+#               cpr_filter.value+'_'+\
 #               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
 #               str(int(am30.position*1000)/1000.0)+\
 #               '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station) 
@@ -639,62 +644,62 @@ def EdgeMultiPosScan(
 ##### tension with 2bma:m58
 #        s1_d1done_read.put(1)
 #        filepath = os.path.join(filepath_top, \
-#               gbl_prefix.value+ \
-#               gbl_prefix_num.value.zfill(3)+'_'+ \
-#               gbl_sample_name.value+'_'+\
+#               cpr_prefix.value+ \
+#               cpr_prefix_num.value.zfill(3)+'_'+ \
+#               cpr_sample_name.value+'_'+\
 #               str('{:5.5f}'.format(s1_d1dmm_calc.value))+'N_'+\
 #               str(ii).zfill(2) + '_' + \
 #               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
 #               make_timestamp() + '_'+\
-#               cam+'_'+gbl_lens_mag.value+'x'+'_'+\
-#               gbl_sam_det_dist.value+'mm'+'_'+\
+#               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+#               cpr_sam_det_dist.value+'mm'+'_'+\
 #               str(exposureTime*1000)+'msecExpTime_'+\
 #               str(slewSpeed)+'DegPerSec_'+\
 #               camShutterMode+'_'+\
-#               gbl_scin_thickness.value+'um'+\
-#               gbl_scin_type.value+'_'+\
-#               gbl_filter.value+'_'+\
+#               cpr_scin_thickness.value+'um'+\
+#               cpr_scin_type.value+'_'+\
+#               cpr_filter.value+'_'+\
 #               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
 #               str(int(am30.position*1000)/1000.0)+\
 #               '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station) 
 
 #        filepath = os.path.join(filepath_top, \
-#               gbl_prefix.value+ \
-#               gbl_prefix_num.value.zfill(3)+'_'+ \
-#               gbl_sample_name.value+'_'+\
+#               cpr_prefix.value+ \
+#               cpr_prefix_num.value.zfill(3)+'_'+ \
+#               cpr_sample_name.value+'_'+\
 #               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
 #               '0DegPos'+str(int(s1m2.position*1000)/1000.0)+'mm_'+\
 #               '90DegPos'+str(int(s1m1.position*1000)/1000.0)+'mm_'+\
 #               make_timestamp() + '_'+\
-#               cam+'_'+gbl_lens_mag.value+'x'+'_'+\
-#               gbl_sam_det_dist.value+'mm'+'_'+\
+#               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+#               cpr_sam_det_dist.value+'mm'+'_'+\
 #               str(exposureTime*1000)+'msecExpTime_'+\
 #               str(slewSpeed)+'DegPerSec_'+\
 #               camShutterMode+'_'+\
-#               gbl_scin_thickness.value+'um'+\
-#               gbl_scin_type.value+'_'+\
-#               gbl_filter.value+'_'+\
+#               cpr_scin_thickness.value+'um'+\
+#               cpr_scin_type.value+'_'+\
+#               cpr_filter.value+'_'+\
 #               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
 #               str(int(am30.position*1000)/1000.0)+\
 #               '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station) 
 
 #### normal filename
         filepath = os.path.join(filepath_top, \
-               gbl_prefix.value+ \
-               gbl_prefix_num.value.zfill(3)+'_'+ \
-               gbl_sample_name.value+'_'+ 
+               cpr_prefix.value+ \
+               cpr_prefix_num.value.zfill(3)+'_'+ \
+               cpr_sample_name.value+'_'+ 
                str(int(preTemp.value))+'C_'+\
                str(ii).zfill(1+1)+'_'\
                'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
                make_timestamp() + '_'+\
-               cam+'_'+gbl_lens_mag.value+'x'+'_'+\
-               gbl_sam_det_dist.value+'mm'+'_'+\
+               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+               cpr_sam_det_dist.value+'mm'+'_'+\
                str(exposureTime*1000)+'msecExpTime_'+\
                str(slewSpeed)+'DegPerSec_'+\
                camShutterMode+'_'+\
-               gbl_scin_thickness.value+'um'+\
-               gbl_scin_type.value+'_'+\
-               gbl_filter.value+'_'+\
+               cpr_scin_thickness.value+'um'+\
+               cpr_scin_type.value+'_'+\
+               cpr_filter.value+'_'+\
                str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
                str(int(am30.position*1000)/1000.0)+\
                '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station)                
@@ -702,30 +707,30 @@ def EdgeMultiPosScan(
 
 ##### tension with 2bma:m6                   
 #        filepath = os.path.join(filepath_top, \
-#               gbl_prefix.value+ \
-#               gbl_prefix_num.value.zfill(3)+'_'+ \
-#               gbl_sample_name.value+'_'+\
+#               cpr_prefix.value+ \
+#               cpr_prefix_num.value.zfill(3)+'_'+ \
+#               cpr_sample_name.value+'_'+\
 #               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
 #               'TensionDist'+str(int(am6.position*1000)/1000.0)+'mm_'+\
 #               make_timestamp() + '_'+\
-#               cam+'_'+gbl_lens_mag.value+'x'+'_'+\
-#               gbl_sam_det_dist.value+'mm'+'_'+\
+#               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+#               cpr_sam_det_dist.value+'mm'+'_'+\
 #               str(exposureTime*1000)+'msecExpTime_'+\
 #               str(slewSpeed)+'DegPerSec_'+\
 #               camShutterMode+'_'+\
-#               gbl_scin_thickness.value+'um'+\
-#               gbl_scin_type.value+'_'+\
-#               gbl_filter.value+'_'+\
+#               cpr_scin_thickness.value+'um'+\
+#               cpr_scin_type.value+'_'+\
+#               cpr_filter.value+'_'+\
 #               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
 #               str(int(am30.position*1000)/1000.0)+\
 #               '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station) 
                    
-        _edgeSet(filepath, filename, numImage, exposureTime, frate, PSO=PSO)
-        _setPSO(slewSpeed, scanDelta, acclTime, angStart=angStart, angEnd=angEnd, PSO=PSO, rotStage=rotStage)                              
+        _edgeSet(filepath, filename, numImage, exposureTime, frate, pso=pso)
+        _setPSO(slewSpeed, scanDelta, acclTime, angStart=angStart, angEnd=angEnd, pso=pso, rotStage=rotStage)                              
         shutter.open()
         tomo_shutter.close()
         time.sleep(3)                                                            
-        _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter, PSO=PSO, rotStage=rotStage)
+        _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter, pso=pso, rotStage=rotStage)
         det.cam.acquire.put("Done")
         print("scan at position #",ii+1," is done!")
 
@@ -734,7 +739,7 @@ def EdgeMultiPosScan(
         if flatPerScan == 1:
         # set for white field -- start                   
             print("Acquiring flat images ...")
-            _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, PSO=PSO)       
+            _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, pso=pso)       
             det.cam.acquire.put("Done")
             print("flat for position #", ii+1, " is done!")
         # set for white field -- end                                            
@@ -742,16 +747,15 @@ def EdgeMultiPosScan(
         if darkPerScan == 1:
             # set for dark field -- start
             print("Acquiring dark images ...")
-            _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, PSO=PSO) 
+            _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso) 
             det.cam.acquire.put("Done")
             print("dark is done!")
         if  posNum!=1 and darkPerScan!=0 and flatPerScan!=0 and ii!=(posNum-1):       
             det.hdf1.capture.put("Done")
-        gbl_proj_num.put(det.hdf1.file_number.value)
+        cpr_proj_num.put(det.hdf1.file_number.value)
         # set for dark field -- end
                                 
-        if gbl_auto_increase.value == 'Yes':
-            gbl_prefix_num.put(str(int(gbl_prefix_num.value)+1))
+        auto_increment_prefix_number()
         
         if ii != (posNum-1):
             time.sleep(delay)
@@ -774,7 +778,7 @@ def EdgeMultiPosScan(
             print("Acquiring flat images ...")
             shutter.open()
             time.sleep(3)                
-            _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, PSO=PSO) 
+            _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, pso=pso) 
             det.cam.acquire.put("Done")
     #        det.hdf1.capture.put("Done")
             print("flat is done!")
@@ -783,13 +787,13 @@ def EdgeMultiPosScan(
         if darkPerScan == 0:    
             # set for dark field -- start
             print("Acquiring dark images ...")
-            _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, PSO=PSO)
+            _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso)
             det.cam.acquire.put("Done")
     #        det.hdf1.capture.put("Done")
             print("dark is done!")
 
     det.hdf1.capture.put("Done")
-    gbl_proj_num.put(det.hdf1.file_number.value)
+    cpr_proj_num.put(det.hdf1.file_number.value)
     # set for dark field -- end
     
     # set for new scans -- start
@@ -841,35 +845,35 @@ def EdgeRadiography(
 
     filepath_top = caputRecorder_filepath.value
 
-    #    filepath = os.path.join(filepath_top, gbl_prefix.value+ \
-    #                gbl_prefix_num.value.zfill(3)+'_'+ 'Radiography_' +\
-    #                gbl_sample_name.value+'_'+\
+    #    filepath = os.path.join(filepath_top, cpr_prefix.value+ \
+    #                cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_' +\
+    #                cpr_sample_name.value+'_'+\
     #                      'YPos'+str(am20.position)+'mm_'+\
-    #                cam+'_'+gbl_lens_mag.value+'x'+'_'+\
-    #                gbl_sam_det_dist.value+'mm'+'_'+\
+    #                cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+    #                cpr_sam_det_dist.value+'mm'+'_'+\
     #                str(exposureTime*1000)+'msecExpTime_'+'DegPerSec_'+\
     #                camShutterMode+'_'+\
-    #                gbl_scin_thickness.value+'um'+\
-    #                gbl_scin_type.value+'_'+\
-    #                gbl_filter.value+'_'+\
+    #                cpr_scin_thickness.value+'um'+\
+    #                cpr_scin_type.value+'_'+\
+    #                cpr_filter.value+'_'+\
     #                str(A_mirror1.angle.value)+'mrad_USArm'+\
     #                str(am30.position)+'_monoY_'+\
     #                str(am26.position)+'_'+station)
 
     for ii in range(repeat):
         filepath = os.path.join(filepath_top, \
-                   gbl_prefix.value+ \
-                   gbl_prefix_num.value.zfill(3)+'_'+ 'Radiography_'+\
-                   gbl_sample_name.value+'_'+\
+                   cpr_prefix.value+ \
+                   cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_'+\
+                   cpr_sample_name.value+'_'+\
                    'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
                    make_timestamp() + '_'+\
-                   cam+'_'+gbl_lens_mag.value+'x'+'_'+\
-                   gbl_sam_det_dist.value+'mm'+'_'+\
+                   cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+                   cpr_sam_det_dist.value+'mm'+'_'+\
                    str(exposureTime*1000)+'msecExpTime_'+\
                    camShutterMode+'_'+\
-                   gbl_scin_thickness.value+'um'+\
-                   gbl_scin_type.value+'_'+\
-                   gbl_filter.value+'_'+\
+                   cpr_scin_thickness.value+'um'+\
+                   cpr_scin_type.value+'_'+\
+                   cpr_filter.value+'_'+\
                    str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
                    str(int(am30.position*1000)/1000.0)+'_monoY_'+\
                    str(int(am26.position*1000)/1000.0)+'_'+station)
@@ -881,7 +885,7 @@ def EdgeRadiography(
         if hasattr(det, "hdf1"):
             det.hdf1.capture.put("Done",)
             det.hdf1.CreateDirectory.put(-5)
-            det.hdf1.FileNumber.put(gbl_proj_num.value)
+            det.hdf1.FileNumber.put(cpr_proj_num.value)
 
         det.cam.pco_trigger_mode.put("Auto")
         det.cam.ImageMode.put("Multiple")
@@ -915,10 +919,10 @@ def EdgeRadiography(
         print('data is done')
     
         det.cam.num_images.put(10)
-        _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, PSO=pso)    
+        _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, pso=pso)    
         print('flat is done')
              
-        _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, PSO=pso)    
+        _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso)    
         print('dark is done')
     
         shutter.close()
@@ -926,9 +930,8 @@ def EdgeRadiography(
         det.cam.image_mode.put("Continuous")
 
         if hasattr(det, "hdf1"):
-            gbl_proj_num.put(det.hdf1.file_number.value)
-        if gbl_auto_increase.value == 'Yes':
-            gbl_prefix_num.put(str(int(gbl_prefix_num.value)+1))
+            cpr_proj_num.put(det.hdf1.file_number.value)
+        auto_increment_prefix_number()
 
         print(str(ii), 'the acquisition is done at ', time.asctime())
         if ii != repeat-1:
@@ -938,8 +941,8 @@ def EdgeRadiography(
     print('Radiography acquisition finished!')
 
 
-def _edgeTest(camScanSpeed,camShutterMode,roiSizeX=2560,roiSizeY=2160,PSO=None):
-    PSO = PSO or pso1
+def _edgeTest(camScanSpeed,camShutterMode,roiSizeX=2560,roiSizeY=2160,pso=None):
+    pso = pso or pso1
     det = pco_edge
 
     # det.cam.scan_control.put("Standard")
@@ -956,8 +959,8 @@ def _edgeTest(camScanSpeed,camShutterMode,roiSizeX=2560,roiSizeY=2160,PSO=None):
     print("camera passes test!")
 
 
-def _edgeSet(filepath, filename, numImage, exposureTime, frate, PSO=None):
-    PSO = PSO or pso1    
+def _edgeSet(filepath, filename, numImage, exposureTime, frate, pso=None):
+    pso = pso or pso1    
     det = pco_edge
 
     det.cam.pco_is_frame_rate_mode.put("DelayExp")
@@ -982,8 +985,8 @@ def _edgeSet(filepath, filename, numImage, exposureTime, frate, PSO=None):
     det.cam.acquire.put("Acquire", wait=False)
 
 
-def _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, PSO=None,rotStage=None):
-    PSO = PSO or pso1
+def _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, pso=None, rotStage=None):
+    pso = pso or pso1
     rotStage = rotStage or bm82
     det = pco_edge
 
@@ -992,9 +995,9 @@ def _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, PSO=
     samStage.move(samInPos)
     rotStage.velocity.put(50.00000)
     rotStage.move(0.00000)
-    PSO.taxi()
-    PSO.fly()
-    if PSO.pso_fly.value == 0 & clShutter == 1:               
+    pso.taxi()
+    pso.fly()
+    if pso.pso_fly.value == 0 & clShutter == 1:               
         shutter.close()     
     rotStage.set_current_position(1.0*rotStage.position%360.0)
     rotStage.velocity.put(50.00000)
@@ -1005,14 +1008,14 @@ def _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, PSO=
         time.sleep(1)                    
 
 
-def _edgeInterlaceAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1,InterlacePSO=None,rotStage=None):
-    InterlacePSO = InterlacePSO or pso1
+def _edgeInterlaceAcquisition(samInPos,samStage,numProjPerSweep,shutter, clShutter=1, pso=None, rotStage=None):
+    pso = pso or pso1
     rotStage = rotStage or bm82
     det = pco_edge
 
     det.cam.frame_type.put("Normal")
     samStage.move(samInPos)
-    InterlacePSO.put("Fly")
+    pso.put("Fly")
     # shutter.close()
     # shutter.open()
     if clShutter == 1:
@@ -1028,11 +1031,11 @@ def _edgeInterlaceAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutte
     # det.hdf1.acquire.put("Done")
 
 
-def _edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, PSO=None):
-    PSO = PSO or pso1
+def _edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, pso=None):
+    pso = pso or pso1
     det = pco_edge
 
-    PSO.scan_control.put("Standard")
+    pso.scan_control.put("Standard")
     shutter.close()
     time.sleep(5)
             
@@ -1042,14 +1045,14 @@ def _edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, PSO=None):
     det.cam.pco_trigger_mode.put("Auto")
     det.cam.acquire.put("Acquire")
         
-    # PSO.start_pos.put(0.00000)
-    # PSO.end_pos.put(6.0000)
-    # PSO.scan_delta.put(0.3)
-    # PSO.slew_speed.put(1)
+    # pso.start_pos.put(0.00000)
+    # pso.end_pos.put(6.0000)
+    # pso.scan_delta.put(0.3)
+    # pso.slew_speed.put(1)
     # rotStage.velocity.put(3)
     # rotStage.acceleration.put(1)
-    # PSO.taxi()
-    # PSO.fly()
+    # pso.taxi()
+    # pso.fly()
     # rotStage.velocity.put(50)
     # rotStage.move(0)
              
@@ -1059,12 +1062,12 @@ def _edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, PSO=None):
     samStage.move(samInPos)
 
 
-def _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter, PSO=None):
-    PSO = PSO or pso1
+def _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter, pso=None):
+    pso = pso or pso1
     det = pco_edge
 
     samStage.move(str(samOutPos), wait=False)
-    PSO.scan_control.put("Standard")
+    pso.scan_control.put("Standard")
     shutter.open()
     time.sleep(5)
     det.cam.frame_type.put("FlatField")
@@ -1073,14 +1076,14 @@ def _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter, PSO
     det.cam.pco_trigger_mode.put("Auto")
     det.cam.acquire.put("Acquire")
 
-    # PSO.start_pos.put(0.00000)
-    # PSO.end_pos.put(6.0000)
-    # PSO.scan_delta.put(0.3)
-    # PSO.slew_speed.put(1)
+    # pso.start_pos.put(0.00000)
+    # pso.end_pos.put(6.0000)
+    # pso.scan_delta.put(0.3)
+    # pso.slew_speed.put(1)
     # rotStage.velocity.put(3)
     # rotStage.acceleration.put(1)
-    # PSO.taxi()
-    # PSO.fly()
+    # pso.taxi()
+    # pso.fly()
     # rotStage.velocity.put(50)
     # rotStage.move(0)
     
@@ -1139,8 +1142,8 @@ def InterlaceScan(
         imgPerSubCycle = 1.0*interlaceFlySub_2bmb.a.value/interlaceFlySub_2bmb.b.value
         secPerSubCycle = 180.0/pso.slew_speed.value
         frate = int(imgPerSubCycle/secPerSubCycle + 5)
-        det.hdf1.file_number.put(gbl_proj_num.value)
-        savedata_2bmb.scan_number.put(gbl_proj_num.value)
+        det.hdf1.file_number.put(cpr_proj_num.value)
+        savedata_2bmb.scan_number.put(cpr_proj_num.value)
 
         print("Scan starts ...")
 
@@ -1148,7 +1151,7 @@ def InterlaceScan(
                     
         filepath_top = caputRecorder_filepath.value
         det.hdf1.create_directory.put(-5)
-        det.hdf1.file_number.put(gbl_proj_num.value)
+        det.hdf1.file_number.put(cpr_proj_num.value)
         filename = caputRecorder_filename.value             # TODO: duplicate of filenameString?
         filepathString = caputRecorder_filepath.value
         filenameString = caputRecorder_filename.value
@@ -1161,19 +1164,19 @@ def InterlaceScan(
         samOutPos = samInPos + samOutPos                                
                                             
         filepath = os.path.join(filepath_top, \
-               gbl_prefix.value+ \
-               gbl_prefix_num.value.zfill(3)+'_'+ \
-               gbl_sample_name.value+'_'+\
+               cpr_prefix.value+ \
+               cpr_prefix_num.value.zfill(3)+'_'+ \
+               cpr_sample_name.value+'_'+\
                'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
                make_timestamp() + '_'+\
-               cam+'_'+gbl_lens_mag.value+'x'+'_'+\
-               gbl_sam_det_dist.value+'mm'+'_'+\
+               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+               cpr_sam_det_dist.value+'mm'+'_'+\
                str(exposureTime*1000)+'msecExpTime_'+\
                str(slewSpeed)+'DegPerSec_'+\
                camShutterMode+'_'+\
-               gbl_scin_thickness.value+'um'+\
-               gbl_scin_type.value+'_'+\
-               gbl_filter.value+'_'+\
+               cpr_scin_thickness.value+'um'+\
+               cpr_scin_type.value+'_'+\
+               cpr_filter.value+'_'+\
                str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
                str(int(am30.position*1000)/1000.0)+\
                '_monoY_'+\
@@ -1191,11 +1194,11 @@ def InterlaceScan(
         numImage = interlaceFlySub_2bmb.vale.value
         
         # test camera -- start
-        _edgeTest(camScanSpeed,camShutterMode,roiSizeX=roiSizeX,roiSizeY=roiSizeY,PSO=PSO)
+        _edgeTest(camScanSpeed,camShutterMode,roiSizeX=roiSizeX,roiSizeY=roiSizeY,pso=pso)
         
         # set scan parameters -- start
-        # _edgeSet(filepath, filename, numImage, exposureTime, frate, PSO = PSO)
-        # _setPSO(slewSpeed, scanDelta, acclTime, PSO=PSO,rotStage=rotStage)
+        # _edgeSet(filepath, filename, numImage, exposureTime, frate, pso=pso)
+        # _setPSO(slewSpeed, scanDelta, acclTime, pso=pso,rotStage=rotStage)
             
         # sample scan -- start  
         print("start sample scan ... ")
@@ -1204,10 +1207,10 @@ def InterlaceScan(
         
         time.sleep(delay) 
         for ii in range(repeat):
-            _edgeSet(filepath, filename, numImage, exposureTime, frate, PSO = PSO)
+            _edgeSet(filepath, filename, numImage, exposureTime, frate, pso=pso)
             rotStage.velocity.put(200)
             pso.taxi()
-            _edgeInterlaceAcquisition(samInPos,samStage,numImage,shutter,InterlacePSO = PSO,rotStage=rotStage)                                       
+            _edgeInterlaceAcquisition(samInPos,samStage,numImage,shutter, pso=pso, rotStage=rotStage)                                       
             if ii < (repeat-1):
                 print("repeat #", ii, " is done! next scan will be started in ", interval, " seconds ...")
                 time.sleep(interval)
@@ -1222,19 +1225,18 @@ def InterlaceScan(
         # set for white field -- start
         if flatPerScan == 0:                                 
             print("Acquiring flat images ...")
-            _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, PSO = PSO)            
+            _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, pso=pso)            
             print("flat is done!")
         # set for white field -- end
         
 #        # set for dark field -- start
         if darkPerScan == 0:                                
             print("Acquiring dark images ...")
-            _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, PSO = PSO)            
+            _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso)            
             print("dark is done!")
     
-        gbl_proj_num.put(det.hdf1.file_number.value)
-        if gbl_auto_increase.value == 'Yes':
-            gbl_prefix_num.put(str(int(gbl_prefix_num.value)+1))
+        cpr_proj_num.put(det.hdf1.file_number.value)
+        auto_increment_prefix_number()
         # set for dark field -- end
         
         # set for new scans -- start
@@ -1259,17 +1261,17 @@ def InterlaceScan(
 #         imgPerSubCycle = 1.0*interlaceFlySub_2bmb.a.value/interlaceFlySub_2bmb.b.value
 #         secPerSubCycle = 180.0/pso.slew_speed.value
 #         frate = int(imgPerSubCycle/secPerSubCycle + 100)                          
-#         det.hdf1.file_number.put(gbl_proj_num.value)
-#         savedata_2bmb.scan_number.put(gbl_proj_num.value)
+#         det.hdf1.file_number.put(cpr_proj_num.value)
+#         savedata_2bmb.scan_number.put(cpr_proj_num.value)
 #         # det.hdf1.file_number.put(userCalcs_2bmb.calc3.val.value)
 #         print("Scan starts ...")
 #         shutter.open()
 #                     
-#         filepath = caputRecorder_filepath   # TODO: duplicates?
-#         filename = caputRecorder_filename
+#         filepath = cpr_filepath   # TODO: duplicates?
+#         filename = cpr_filename
 #     
-#         filepathString = caputRecorder_filepath
-#         filenameString = caputRecorder_filename
+#         filepathString = cpr_filepath
+#         filenameString = cpr_filename
 #         pathSep =  filepathString.rsplit('/')       # TODO: confusing syntax
 #     
 #         logFilePath, logFileName = make_log_file_path(
@@ -1280,12 +1282,12 @@ def InterlaceScan(
 # #        numImage = det.cam.pco_max_imgs_seg0.value # camPrefix+":cam1:pco_max_imgs_seg0_RBV.VAL"
 #         
 #         # test camera -- start
-#         _dimaxTest(roiSizeX=roiSizeX,roiSizeY=roiSizeY,PSO = PSO)
+#         _dimaxTest(roiSizeX=roiSizeX,roiSizeY=roiSizeY, pso=pso)
 #         # test camera -- end
 #         
 #         # set scan parameters -- start
-#         _dimaxSet(filepath, filename, numImage, exposureTime, frate, PSO = PSO)
-# #        _setPSO(slewSpeed, scanDelta, acclTime, PSO=PSO,rotStage=rotStage)
+#         _dimaxSet(filepath, filename, numImage, exposureTime, frate, pso=pso)
+# #        _setPSO(slewSpeed, scanDelta, acclTime, pso=pso,rotStage=rotStage)
 #         # set scan parameters -- end
 #                     
 #         print("start sample scan ... ")
@@ -1295,7 +1297,7 @@ def InterlaceScan(
 #         wait_temperature(trigTemp)
 #         
 #         time.sleep(delay)                
-#         _dimaxInterlaceAcquisition(samInPos,samStage,numImage,shutter,InterlacePSO = PSO,rotStage=rotStage)                        
+#         _dimaxInterlaceAcquisition(samInPos,samStage,numImage,shutter, pso=pso, rotStage=rotStage)                        
 #         
 #         logFile = open(logFileName,'a')
 #         logFile.write("Scan was done at time: " + time.asctime() + '\n')
@@ -1305,16 +1307,16 @@ def InterlaceScan(
 #         
 #         # set for white field -- start
 #         print("Acquiring flat images ...")
-#         _dimaxAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, PSO = PSO)        
+#         _dimaxAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, pso=pso)        
 #         print("flat is done!")
 #         # set for white field -- end
 #         
 #         # set for dark field -- start
 #         print("Acquiring dark images ...")
-#         _dimaxAcquireDark(samInPos,filepath,samStage,rotStage,shutter, PSO = PSO)                
+#         _dimaxAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso)                
 #         print("dark is done!")
 #     
-#         gbl_proj_num.put(det.hdf1.file_number)
+#         cpr_proj_num.put(det.hdf1.file_number)
 #         # set for dark field -- end
 #         
 #         # set for new scans -- start
