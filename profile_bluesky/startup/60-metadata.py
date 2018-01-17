@@ -34,4 +34,4 @@ for key, value in os.environ.items():
 
 print("Metadata dictionary:")
 for k, v in sorted(RE.md.items()):
-    print("RE['%s']" % k, "=", v)
+    print("RE.md['%s']" % k, "=", v)
