@@ -1,7 +1,6 @@
 print(__file__)
 
-
-# note: see 10-devices.py for how Devices are constructed
+"""motors, stages, positioners, ..."""
 
 tomo_shutter = Motor_Shutter("2bma:m23", name="tomo_shutter")
 
