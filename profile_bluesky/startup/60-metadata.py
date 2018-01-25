@@ -7,6 +7,7 @@ from datetime import datetime
 RE.md['beamline_id'] = '2-BM tomography'
 RE.md['proposal_id'] = None
 RE.md['pid'] = os.getpid()
+RE.md['USER2BMB_ROOT_DIR'] = USER2BMB_ROOT_DIR
 
 # Add a callback that prints scan IDs at the start of each scan.
 

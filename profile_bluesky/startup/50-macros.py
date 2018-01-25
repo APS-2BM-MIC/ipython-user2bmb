@@ -18,8 +18,9 @@ def make_timestamp(the_time=None):
     the_time : str
         string representation of the time
         default time.asctime()
-        example: 2018-01-12 15:40:46
-
+        example: Sun Jan 4 18:59:31 1959
+        result:  SunJan4_18_59_31_1959
+        
     """
     the_time = the_time or time.asctime()
     timestamp = [x for x in the_time.rsplit(' ') if x!='']
@@ -29,10 +30,10 @@ def make_timestamp(the_time=None):
     return timestamp
 
 
-def trunc(f, n=3):
-    """truncate a float to n digits precision"""
+def trunc(v, n=3):
+    """truncate `v` (a float) to `n` digits precision"""
     factor = pow(10, n)
-    return int(posStage.position*factor)/factor
+    return int(v*factor)/factor
 
 
 def make_log_file(filepathString, filenameString, file_number):
@@ -624,7 +625,7 @@ def EdgeMultiPosScan(
     pso.scan_control.put("Standard")
     scanDelta = 1.0*(angEnd-angStart)/numProjPerSweep
     acclTime = 1.0*slewSpeed/accl
-    frate = int(1.0*numProjPerSweep/(1.0*(angEnd-angStart)/slewSpeed) + 5)                
+    frate = int(1.0*numProjPerSweep/(1.0*(angEnd-angStart)/slewSpeed) + 5)
 
     det.hdf1.file_number.put(cpr_proj_num.value)
             
@@ -728,7 +729,8 @@ def EdgeMultiPosScan(
 #               '_monoY_'+str(trunc(am26.position))+'_'+station) 
 
 #### normal filename
-        filepath = os.path.join(filepath_top, \
+        if False:       # the current way
+            filepath = os.path.join(filepath_top, \
                cpr_prefix.value+ \
                cpr_prefix_num.value.zfill(3)+'_'+ \
                cpr_sample_name.value+'_'+ 
@@ -747,27 +749,30 @@ def EdgeMultiPosScan(
                str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
                str(trunc(am30.position))+\
                '_monoY_'+str(trunc(am26.position))+'_'+station)                
-                   
-
-##### tension with 2bma:m6                   
-#        filepath = os.path.join(filepath_top, \
-#               cpr_prefix.value+ \
-#               cpr_prefix_num.value.zfill(3)+'_'+ \
-#               cpr_sample_name.value+'_'+\
-#               'YPos'+str(trunc(posStage.position))+'mm_'+\
-#               'TensionDist'+str(trunc(am6.positiontrunc)+'mm_'+\
-#               make_timestamp() + '_'+\
-#               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
-#               cpr_sam_det_dist.value+'mm'+'_'+\
-#               str(exposureTime*1000)+'msecExpTime_'+\
-#               str(slewSpeed)+'DegPerSec_'+\
-#               camShutterMode+'_'+\
-#               cpr_scin_thickness.value+'um'+\
-#               cpr_scin_type.value+'_'+\
-#               cpr_filter.value+'_'+\
-#               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
-#               str(trunc(am30.position))+\
-#               '_monoY_'+str(trunc(am26.position))+'_'+station) 
+        else:
+            # 2018-01-26, PRJ: I propose this looks easier to understand and maintain
+            fp = '{}{}_'.format(cpr_prefix.value, cpr_prefix_num.value.zfill(3))
+            fp += '{}_'.format(cpr_sample_name.value)
+            fp += '{}C_'.format(preTemp.value)
+            fp += '{}_'.format(str(ii).zfill(1+1))
+            fp += 'YPos{0:.3f}mm_'.format(posStage.position)
+            ##### tension with 2bma:m6                   
+            # fp += 'TensionDist{0:.3f}mm_'.format(am6.position)
+            fp += '{}_'.format(make_timestamp())
+            fp += '{}_'.format(cam)
+            fp += '{}x_'.format(cpr_lens_mag.value)
+            fp += '{}mm_'.format(cpr_sam_det_dist.value)
+            fp += '{}msecExpTime_'.format(exposureTime*1000)
+            fp += '{}DegPerSec_'.format(slewSpeed)
+            fp += '{}_'.format(camShutterMode)
+            fp += '{}um_'.format(cpr_scin_thickness.value)
+            fp += '{}_'.format(cpr_scin_type.value)
+            fp += '{}_'.format(cpr_filter.value)
+            fp += '{0:.3f}mrad_'.format(A_mirror1.angle.value)
+            fp += 'USArm{0:.3f}_'.format(am30.position)
+            fp += 'monoY{0:.3f}_'.format(am26.position)
+            fp += station
+            filepath = os.path.join(filepath_top, fp)
                    
         _edgeSet(filepath, filename, numImage, exposureTime, frate, pso=pso)
         _setPSO(slewSpeed, scanDelta, acclTime, angStart=angStart, angEnd=angEnd, pso=pso, rotStage=rotStage)                              
@@ -794,7 +799,7 @@ def EdgeMultiPosScan(
             _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso) 
             det.cam.acquire.put("Done")
             print("dark is done!")
-        if  posNum!=1 and darkPerScan!=0 and flatPerScan!=0 and ii!=(posNum-1):       
+        if posNum!=1 and darkPerScan!=0 and flatPerScan!=0 and ii!=(posNum-1):       
             det.hdf1.capture.put("Done")
         cpr_proj_num.put(det.hdf1.file_number.value)
         # set for dark field -- end
@@ -862,6 +867,7 @@ def EdgeRadiography(
         repeat=1, 
         delay=300,
         scanMode=0):
+    """radiography using the edge detector"""
 
     station = 'AHutch'
     # station = 'BHutch'   
@@ -905,7 +911,8 @@ def EdgeRadiography(
     #                str(am26.position)+'_'+station)
 
     for ii in range(repeat):
-        filepath = os.path.join(filepath_top, \
+        if False:       # the current way
+            filepath = os.path.join(filepath_top, \
                    cpr_prefix.value+ \
                    cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_'+\
                    cpr_sample_name.value+'_'+\
@@ -921,6 +928,26 @@ def EdgeRadiography(
                    str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
                    str(trunc(am30.position))+'_monoY_'+\
                    str(trunc(am26.position))+'_'+station)
+        else:
+            # 2018-01-26, PRJ: I propose this looks easier to understand and maintain
+            fp = '{}{}_'.format(cpr_prefix.value, cpr_prefix_num.value.zfill(3))
+            fp += 'Radiography_'
+            fp += '{}_'.format(cpr_sample_name.value)
+            fp += 'YPos{0:.3f}mm_'.format(posStage.position)
+            fp += '{}_'.format(make_timestamp())
+            fp += '{}_'.format(cam)
+            fp += '{}x_'.format(cpr_lens_mag.value)
+            fp += '{}mm_'.format(cpr_sam_det_dist.value)
+            fp += '{}msecExpTime_'.format(exposureTime*1000)
+            fp += '{}_'.format(camShutterMode)
+            fp += '{}um_'.format(cpr_scin_thickness.value)
+            fp += '{}_'.format(cpr_scin_type.value)
+            fp += '{}_'.format(cpr_filter.value)
+            fp += '{0:.3f}mrad_'.format(A_mirror1.angle.value)
+            fp += 'USArm{0:.3f}_'.format(am30.position)
+            fp += 'monoY{0:.3f}_'.format(am26.position)
+            fp += station
+            filepath = os.path.join(filepath_top, fp)
 
         filename = cpr_filename.value
     
@@ -963,10 +990,10 @@ def EdgeRadiography(
         print('data is done')
     
         det.cam.num_images.put(10)
-        _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, pso=pso)    
+        _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, pso=pso)
         print('flat is done')
              
-        _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso)    
+        _edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso)
         print('dark is done')
     
         shutter.close()
@@ -980,8 +1007,7 @@ def EdgeRadiography(
         print(str(ii), 'the acquisition is done at ', time.asctime())
         if ii != repeat-1:
             time.sleep(delay)
-                 
-                
+
     print('Radiography acquisition finished!')
 
 
@@ -1154,10 +1180,16 @@ def _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter, pso
 
 def wait_temperature(trigTemp):
     """wait for temperature to reach trigger temperature"""
-    previous = preTemp
-    while ((preTemp-trigTemp)*(previous-trigTemp)>0):
-        preTemp_ref = preTemp          
+    preTemp_ref = preTemp.value
+    # This test requires an exact temperature match for two readings.
+    while ((preTemp.value-trigTemp)*(preTemp_ref-trigTemp)>0):
+        preTemp_ref = preTemp.value          
         time.sleep(0.5)
+    # TODO: Can we be more robust?
+    # close_enough = 0.1; precision_desired = 0.1  # possibly
+    #    abs(preTemp.value - preTemp_ref) < close_enough
+    # and
+    #    abs(preTemp.value - trigTemp) < precision_desired
 
 
 def InterlaceScan(
