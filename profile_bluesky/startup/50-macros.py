@@ -11,13 +11,28 @@ def auto_increment_prefix_number():
         cpr_prefix_num.put(str(int(cpr_prefix_num.value)+1))
 
 
-def make_timestamp():
-    """such as: 2018-01-12 15:40:46 is FriJan12_15_40_46_2018"""
-    timestamp = [x for x in time.asctime().rsplit(' ') if x!='']
+def make_timestamp(the_time=None):
+    """
+    such as: 2018-01-12 15:40:46 is FriJan12_15_40_46_2018
+    
+    the_time : str
+        string representation of the time
+        default time.asctime()
+        example: 2018-01-12 15:40:46
+
+    """
+    the_time = the_time or time.asctime()
+    timestamp = [x for x in the_time.rsplit(' ') if x!='']
     timestamp = ''.join(timestamp[0:3]) \
                 + '_' + timestamp[3].replace(':','_') \
                 + '_' + timestamp[4]
     return timestamp
+
+
+def trunc(f, n=3):
+    """truncate a float to n digits precision"""
+    factor = pow(10, n)
+    return int(posStage.position*factor)/factor
 
 
 def make_log_file(filepathString, filenameString, file_number):
@@ -82,7 +97,7 @@ def setDefaultFolderStructure():
     caput_desc(cpr_filter, 'filter')
     caput_desc(cpr_proj_num, 'proj #')
 
-    caputRecorder_filename.put('proj')
+    cpr_filename.put('proj')
     cpr_prefix.put('Exp')
     cpr_prefix_num.put('1')
     cpr_auto_increase.put('Yes')
@@ -341,7 +356,7 @@ def DimaxRadiography(
     A_shutter.open()
     numImage = frmRate * acqPeriod + 20
     camShutterMode = "Rolling"
-    filepath_top = caputRecorder_filepath.value
+    filepath_top = cpr_filepath.value
 
 #    filepath = os.path.join(filepath_top, cpr_prefix.value+ \
 #                cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_' +\
@@ -364,23 +379,51 @@ def DimaxRadiography(
     for ii in range(repeat):
         tomo_shutter.close()
         
-        filepath = os.path.join(filepath_top, \
-                   cpr_prefix.value+ \
-                   cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_'+\
-                   cpr_sample_name.value+'_'+\
-                   'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
-                   make_timestamp() + '_'+\
-                   cam+'_'+cpr_lens_mag.value+'x'+'_'+\
-                   cpr_sam_det_dist.value+'mm'+'_'+\
-                   str(exposureTime*1000)+'msecExpTime_'+\
-                   camShutterMode+'_'+cpr_scin_thickness.value+'um'+\
-                   cpr_scin_type.value+'_'+\
-                   cpr_filter.value+'_'+\
-                   str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
-                   str(int(am30.position*1000)/1000.0)+\
-                   '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+\
-                   station)     
-        filename = caputRecorder_filename.value   
+        if True:    # the old way
+            filepath = os.path.join(filepath_top, \
+                       cpr_prefix.value+ \
+                       cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_'+\
+                       cpr_sample_name.value+'_'+\
+                       'YPos'+str(trunc(posStage.position))+'mm_'+\
+                       make_timestamp() + '_'+\
+                       cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+                       cpr_sam_det_dist.value+'mm'+'_'+\
+                       str(exposureTime*1000)+'msecExpTime_'+\
+                       camShutterMode+'_'+cpr_scin_thickness.value+'um'+\
+                       cpr_scin_type.value+'_'+\
+                       cpr_filter.value+'_'+\
+                       str(trunc(A_mirror1.angle.value))+'mrad_'+\
+                       'USArm'+str(trunc(am30.position))+'_'+\
+                       'monoY_'+str(trunc(am26.position))+'_'+\
+                       station)
+        else:   # the proposed way
+            # TODO: Which is easier to read & edit?
+            #   'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'
+            #   'YPos'+str(trunc(posStage.position))+'mm_'
+            #   'YPos{0:.3f}mm_'.format(posStage.position)    # NOTE: rounds instead of truncates
+            #   'YPos%.3fmm_' % posStage.position    # NOTE: rounds instead of truncates
+
+            # 2018-01-26, PRJ: I propose this looks easier to understand and maintain
+            fp = '{}{}_'.format(cpr_prefix.value, cpr_prefix_num.value.zfill(3))
+            fp += 'Radiography_'
+            fp += '{}_'.format(cpr_sample_name.value)
+            fp += 'YPos{0:.3f}mm_'.format(posStage.position)
+            # fp += 'Ypos%.3fmm_' % posStage.position
+            fp += '{}_'.format(make_timestamp())
+            fp += '{}_'.format(cam)
+            fp += '{}x_'.format(cpr_lens_mag.value)
+            fp += '{}mm_'.format(cpr_sam_det_dist.value)
+            fp += '{}msecExpTime_'.format(exposureTime*1000)
+            fp += '{}_'.format(camShutterMode)
+            fp += '{}um_'.format(cpr_scin_thickness.value)
+            fp += '{}_'.format(cpr_scin_type.value)
+            fp += '{}_'.format(cpr_filter.value)
+            fp += '{0:.3f}mrad_'.format(A_mirror1.angle.value)
+            fp += 'USArm{0:.3f}_'.format(am30.position)
+            fp += 'monoY{0:.3f}_'.format(am26.position)
+            fp += station
+            filepath = os.path.join(filepath_top, fp)
+        filename = cpr_filename.value   
     
         det.cam.acquire.put("Done")
 
@@ -573,7 +616,7 @@ def EdgeMultiPosScan(
         station = 'AHutch'
     elif samStage.user_setpoint.pvname.startswith('2bmb'):    
         station = 'BHutch' 
-    filepath_top = caputRecorder_filepath.value
+    filepath_top = cpr_filepath.value
            
     det.hdf1.create_directory(-5)
                
@@ -588,10 +631,10 @@ def EdgeMultiPosScan(
 #    shutter.open()
                 
 #    filepath = cpr_filepath.value
-    filename = caputRecorder_filename.value
+    filename = cpr_filename.value
 
-    filepathString = caputRecorder_filepath.value
-    filenameString = caputRecorder_filename.value
+    filepathString = cpr_filepath.value
+    filenameString = cpr_filename.value
     pathSep =  filepathString.rsplit('/')
     logFilePath, logFileName = make_log_file(
             filepathString, filenameString, 
@@ -627,7 +670,7 @@ def EdgeMultiPosScan(
 #               cpr_sample_name.value+'_'+\
 #               str(int(preTemp.value))+'C_'+\
 #               str(ii).zfill(1) + '_' + \
-#               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
+#               'YPos'+str(trunc(posStage.position))+'mm_'+\
 #               make_timestamp() + '_'+\
 #               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
 #               cpr_sam_det_dist.value+'mm'+'_'+\
@@ -638,9 +681,9 @@ def EdgeMultiPosScan(
 #               cpr_scin_thickness.value+'um'+\
 #               cpr_scin_type.value+'_'+\
 #               cpr_filter.value+'_'+\
-#               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
-#               str(int(am30.position*1000)/1000.0)+\
-#               '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station) 
+#               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
+#               str(trunc(am30.position))+\
+#               '_monoY_'+str(trunc(am26.position))+'_'+station) 
 
 ##### tension with 2bma:m58
 #        s1_d1done_read.put(1)
@@ -650,7 +693,7 @@ def EdgeMultiPosScan(
 #               cpr_sample_name.value+'_'+\
 #               str('{:5.5f}'.format(s1_d1dmm_calc.value))+'N_'+\
 #               str(ii).zfill(2) + '_' + \
-#               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
+#               'YPos'+str(trunc(posStage.position))+'mm_'+\
 #               make_timestamp() + '_'+\
 #               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
 #               cpr_sam_det_dist.value+'mm'+'_'+\
@@ -660,17 +703,17 @@ def EdgeMultiPosScan(
 #               cpr_scin_thickness.value+'um'+\
 #               cpr_scin_type.value+'_'+\
 #               cpr_filter.value+'_'+\
-#               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
-#               str(int(am30.position*1000)/1000.0)+\
-#               '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station) 
+#               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
+#               str(trunc(am30.position))+\
+#               '_monoY_'+str(trunc(am26.position))+'_'+station) 
 
 #        filepath = os.path.join(filepath_top, \
 #               cpr_prefix.value+ \
 #               cpr_prefix_num.value.zfill(3)+'_'+ \
 #               cpr_sample_name.value+'_'+\
-#               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
-#               '0DegPos'+str(int(s1m2.position*1000)/1000.0)+'mm_'+\
-#               '90DegPos'+str(int(s1m1.position*1000)/1000.0)+'mm_'+\
+#               'YPos'+str(trunc(posStage.position))+'mm_'+\
+#               '0DegPos'+str(trunc(s1m2.position))+'mm_'+\
+#               '90DegPos'+str(trunc(s1m1.position))+'mm_'+\
 #               make_timestamp() + '_'+\
 #               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
 #               cpr_sam_det_dist.value+'mm'+'_'+\
@@ -680,9 +723,9 @@ def EdgeMultiPosScan(
 #               cpr_scin_thickness.value+'um'+\
 #               cpr_scin_type.value+'_'+\
 #               cpr_filter.value+'_'+\
-#               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
-#               str(int(am30.position*1000)/1000.0)+\
-#               '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station) 
+#               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
+#               str(trunc(am30.position))+\
+#               '_monoY_'+str(trunc(am26.position))+'_'+station) 
 
 #### normal filename
         filepath = os.path.join(filepath_top, \
@@ -691,7 +734,7 @@ def EdgeMultiPosScan(
                cpr_sample_name.value+'_'+ 
                str(int(preTemp.value))+'C_'+\
                str(ii).zfill(1+1)+'_'\
-               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
+               'YPos'+str(trunc(posStage.position))+'mm_'+\
                make_timestamp() + '_'+\
                cam+'_'+cpr_lens_mag.value+'x'+'_'+\
                cpr_sam_det_dist.value+'mm'+'_'+\
@@ -701,9 +744,9 @@ def EdgeMultiPosScan(
                cpr_scin_thickness.value+'um'+\
                cpr_scin_type.value+'_'+\
                cpr_filter.value+'_'+\
-               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
-               str(int(am30.position*1000)/1000.0)+\
-               '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station)                
+               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
+               str(trunc(am30.position))+\
+               '_monoY_'+str(trunc(am26.position))+'_'+station)                
                    
 
 ##### tension with 2bma:m6                   
@@ -711,8 +754,8 @@ def EdgeMultiPosScan(
 #               cpr_prefix.value+ \
 #               cpr_prefix_num.value.zfill(3)+'_'+ \
 #               cpr_sample_name.value+'_'+\
-#               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
-#               'TensionDist'+str(int(am6.position*1000)/1000.0)+'mm_'+\
+#               'YPos'+str(trunc(posStage.position))+'mm_'+\
+#               'TensionDist'+str(trunc(am6.positiontrunc)+'mm_'+\
 #               make_timestamp() + '_'+\
 #               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
 #               cpr_sam_det_dist.value+'mm'+'_'+\
@@ -722,9 +765,9 @@ def EdgeMultiPosScan(
 #               cpr_scin_thickness.value+'um'+\
 #               cpr_scin_type.value+'_'+\
 #               cpr_filter.value+'_'+\
-#               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
-#               str(int(am30.position*1000)/1000.0)+\
-#               '_monoY_'+str(int(am26.position*1000)/1000.0)+'_'+station) 
+#               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
+#               str(trunc(am30.position))+\
+#               '_monoY_'+str(trunc(am26.position))+'_'+station) 
                    
         _edgeSet(filepath, filename, numImage, exposureTime, frate, pso=pso)
         _setPSO(slewSpeed, scanDelta, acclTime, angStart=angStart, angEnd=angEnd, pso=pso, rotStage=rotStage)                              
@@ -844,7 +887,7 @@ def EdgeRadiography(
     cam = "edge"; det = pco_edge
     camShutterMode = "Rolling"                
 
-    filepath_top = caputRecorder_filepath.value
+    filepath_top = cpr_filepath.value
 
     #    filepath = os.path.join(filepath_top, cpr_prefix.value+ \
     #                cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_' +\
@@ -866,7 +909,7 @@ def EdgeRadiography(
                    cpr_prefix.value+ \
                    cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_'+\
                    cpr_sample_name.value+'_'+\
-                   'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
+                   'YPos'+str(trunc(posStage.position))+'mm_'+\
                    make_timestamp() + '_'+\
                    cam+'_'+cpr_lens_mag.value+'x'+'_'+\
                    cpr_sam_det_dist.value+'mm'+'_'+\
@@ -875,11 +918,11 @@ def EdgeRadiography(
                    cpr_scin_thickness.value+'um'+\
                    cpr_scin_type.value+'_'+\
                    cpr_filter.value+'_'+\
-                   str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
-                   str(int(am30.position*1000)/1000.0)+'_monoY_'+\
-                   str(int(am26.position*1000)/1000.0)+'_'+station)
+                   str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
+                   str(trunc(am30.position))+'_monoY_'+\
+                   str(trunc(am26.position))+'_'+station)
 
-        filename = caputRecorder_filename.value
+        filename = cpr_filename.value
     
         det.cam.acquire.put("Done")
 
@@ -1162,12 +1205,12 @@ def InterlaceScan(
 
         shutter.open()
                     
-        filepath_top = caputRecorder_filepath.value
+        filepath_top = cpr_filepath.value
         det.hdf1.create_directory.put(-5)
         det.hdf1.file_number.put(cpr_proj_num.value)
-        filename = caputRecorder_filename.value             # TODO: duplicate of filenameString?
-        filepathString = caputRecorder_filepath.value
-        filenameString = caputRecorder_filename.value
+        filename = cpr_filename.value             # TODO: duplicate of filenameString?
+        filepathString = cpr_filepath.value
+        filenameString = cpr_filename.value
         
         logFilePath, logFileName = make_log_file(
             filepathString, filenameString, int(det.hdf1.file_number.value))
@@ -1180,7 +1223,7 @@ def InterlaceScan(
                cpr_prefix.value+ \
                cpr_prefix_num.value.zfill(3)+'_'+ \
                cpr_sample_name.value+'_'+\
-               'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'+\
+               'YPos'+str(trunc(posStage.position))+'mm_'+\
                make_timestamp() + '_'+\
                cam+'_'+cpr_lens_mag.value+'x'+'_'+\
                cpr_sam_det_dist.value+'mm'+'_'+\
@@ -1190,10 +1233,10 @@ def InterlaceScan(
                cpr_scin_thickness.value+'um'+\
                cpr_scin_type.value+'_'+\
                cpr_filter.value+'_'+\
-               str(int(A_mirror1.angle.value*1000)/1000.0)+'mrad_USArm'+\
-               str(int(am30.position*1000)/1000.0)+\
+               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
+               str(trunc(am30.position))+\
                '_monoY_'+\
-               str(int(am26.position*1000)/1000.0)+'_'+\
+               str(trunc(am26.position))+'_'+\
                station)
         """
         example:
