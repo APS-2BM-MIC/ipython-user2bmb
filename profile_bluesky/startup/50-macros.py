@@ -80,9 +80,9 @@ def make_log_file(filepathString, filenameString, file_number):
 
 
 def _initFilepath():
-    cpr_filepath.put("proj")
+    cpr_filename.put("proj")
     path = "s:/data/2017_12/Commissioning"
-    cpr_filename.put(path)
+    cpr_filepath.put(path)
 
 
 def setDefaultFolderStructure():
@@ -147,7 +147,7 @@ def initDimax(samInPos=0, hutch='A'):
         det.hdf1.enable.put("Enable")
         # det.hdf1.xml_layout_file.put("DynaMCTHDFLayout.xml")
         det.hdf1.capture.put("Done")
-        det.hdf1.num_captured.put(0)
+        # FIXME: det.hdf1.num_captured.put(0)
     rotStage.servo.put("Enable")
     process_tableFly2_sseq_record()
     rotStage.velocity.put(180)
@@ -159,15 +159,14 @@ def initDimax(samInPos=0, hutch='A'):
 
 def initEdge(samInPos=0, samStage=None, rotStage=None):
     """
-    I want a comment here
+    setup the PCO Edge detector
     """
     samStage = samStage or am49
     rotStage = rotStage or bm82
+    det = pco_edge
 
     tomo_shutter.open()
     A_shutter.open()
-
-    det = pco_edge
 
     det.cam.nd_attributes_file.put("DynaMCTDetectorAttributes.xml")
 
@@ -185,13 +184,11 @@ def initEdge(samInPos=0, samStage=None, rotStage=None):
         det.hdf1.enable.put("Enable")
         det.hdf1.capture.put("Done")
         det.hdf1.xml_layout_file.put("DynaMCTHDFLayout.xml")
-        det.hdf1.num_captured.put(0)
+        # FIXME: det.hdf1.num_captured.put(0)
     det.image.enable.put("Enable")
     process_tableFly2_sseq_record()
     rotStage.stop()
-    rotStage.set_use_switch.put("Set")
-    rotStage.user_setpoint.put(rotStage.position % 360.0)
-    rotStage.set_use_switch.put("Use")
+    rotStage.set_current_position(rotStage.position % 360.0)
     rotStage.velocity.put(30)
     rotStage.acceleration.put(3)
     rotStage.move(0)
@@ -281,6 +278,7 @@ def changeDMMEng(energy=24.9):
     if energy_index.size == 0:
         print('there is no specified energy in the energy lookup table. please choose a calibrated energy.')
         return    0                            # TODO: could raise KeyError instead!
+    energy_index = energy_index.data[0]        # pull value out of numpy array
 
     A_mirror1.angle.put(Mirr_Ang_list[energy_index])
     A_mirror1.average.put(Mirr_YAvg_list[energy_index])
@@ -295,7 +293,7 @@ def changeDMMEng(energy=24.9):
     am32.move(M2Y_list[energy_index], wait=False)
     am25.move(DMM_USX_list[energy_index], wait=False)
     am28.move(DMM_DSX_list[energy_index])
-    am7.move(XIASlit_list[energy_index] )
+    am7.move(XIASlit_list[energy_index])
     print('DMM energy is set to ', energy, 'keV.')
 
 
@@ -446,7 +444,7 @@ def DimaxRadiography(
             det.hdf1.enable.put("Enable")
             det.hdf1.auto_increment.put("Yes")
             det.hdf1.num_capture.put(numImage)
-            det.hdf1.num_captured.put(numImage)
+            # FIXME: det.hdf1.num_captured.put(numImage)
             det.hdf1.file_path.put(filepath)
             det.hdf1.file_name.put(filename)
             det.hdf1.file_template.put("%s%s_%4.4d.hdf")
@@ -978,7 +976,7 @@ def EdgeRadiography(
             det.hdf1.enable.put("Enable")
             det.hdf1.auto_increment.put("Yes")
             det.hdf1.num_capture.put(numImage+20)
-            det.hdf1.num_captured.put(0)
+            # FIXME: det.hdf1.num_captured.put(0)
             det.hdf1.file_path.put(filepath)
             det.hdf1.file_name.put(filename)
             det.hdf1.file_template.put("%s%s_%4.4d.hdf")
@@ -1054,7 +1052,7 @@ def _edgeSet(filepath, filename, numImage, exposureTime, frate, pso=None):
     det.hdf1.auto_increment.put("Yes")
     det.hdf1.num_capture.put(numImage)
     det.hdf1.num_capture.put(numImage)
-    det.hdf1.num_captured.put(0)
+    # FIXME: det.hdf1.num_captured.put(0)
     det.hdf1.file_path.put(filepath)
     det.hdf1.file_name.put(filename)
     det.hdf1.file_template.put("%s%s_%4.4d.hdf")
