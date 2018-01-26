@@ -60,6 +60,8 @@ class AB_Shutter(Device):
     pss_open = Component(EpicsSignal, ":open")
     pss_close = Component(EpicsSignal, ":close")
     
+    # TODO: how to know if is open or closed?  Need PV(s)
+    
     def open(self):
         """tells PSS to open the shutter"""
         self.pss_open.put(1)
@@ -83,6 +85,13 @@ class Motor_Shutter(Device):
     motor = Component(EpicsMotor, "")
     closed_position = 1.0
     open_position = 0.0
+    _tolerance = 0.01
+    
+    def isopen(self):
+        return abs(self.motor.position - self.open_position) <= self._tolerance
+    
+    def isclosed(self):
+        return abs(self.motor.position - self.closed_position) <= self._tolerance
     
     def open(self):
         """move motor to BEAM NOT BLOCKED position"""
@@ -134,6 +143,8 @@ class MyHDF5Plugin(HDF5Plugin, FileStoreHDF5IterativeWrite):
     # In [48]: pco_edge.hdf1.xml_layout_file.get()
     # Out[48]: '<array size=21, type=time_char>'
     xml_layout_file = Component(EpicsSignalWithRBV, "XMLFileName", string=True)
+    xml_layout_valid = Component(EpicsSignalRO, "XMLValid_RBV")
+    xml_layout_error_message = Component(EpicsSignalRO, "XMLErrorMsg_RBV", string=True)
     
     def get_frames_per_point(self):
         return self.parent.cam.num_images.get()
