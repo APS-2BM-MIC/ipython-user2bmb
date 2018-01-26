@@ -110,9 +110,8 @@ class PSO_Device(Device):
         self.pso_fly.put("Fly")
 
 
-class MyPcoCam(PcoDetectorCam):    # TODO: check this
+class MyPcoCam(PcoDetectorCam):
     """PCO Dimax detector"""
-    # FIXME: make different one for Edge PVs
     array_callbacks = Component(EpicsSignal, "ArrayCallbacks")
     pco_cancel_dump = Component(EpicsSignal, "pco_cancel_dump")
     pco_live_view = Component(EpicsSignal, "pco_live_view")
@@ -122,13 +121,19 @@ class MyPcoCam(PcoDetectorCam):    # TODO: check this
     pco_imgs2dump = Component(EpicsSignalWithRBV, "pco_imgs2dump")
     pco_dump_counter = Component(EpicsSignal, "pco_dump_counter")
     pco_dump_camera_memory = Component(EpicsSignal, "pco_dump_camera_memory")
-
+    pco_max_imgs_seg0 = Component(EpicsSignalRO, "pco_max_imgs_seg0_RBV")
+    pco_ready2acquire = Component(EpicsSignal, "pco_ready2acquire")
+    pco_set_frame_rate = Component(EpicsSignal, "pco_set_frame_rate")
+    
 
 class MyHDF5Plugin(HDF5Plugin, FileStoreHDF5IterativeWrite):
     """adapt HDF5 plugin for AD 2.5+"""
     
     file_number_sync = None
-    xml_layout_file = Component(EpicsSignalWithRBV, "XMLFileName")
+    # FIXME:  .put() works OK but .value returns numpy object metadata
+    # In [48]: pco_edge.hdf1.xml_layout_file.get()
+    # Out[48]: '<array size=21, type=time_char>'
+    xml_layout_file = Component(EpicsSignalWithRBV, "XMLFileName", string=True)
     
     def get_frames_per_point(self):
         return self.parent.cam.num_images.get()

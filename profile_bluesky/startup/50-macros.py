@@ -4,6 +4,10 @@ print(__file__)
 functions converted from macros_2bmb.py (PyEpics macros from Xianghui)
 """
 
+# HDF5 File Writer Plugin configuration for 2-BM-B
+# -5: means create maximum 5 directories as needed
+MAX_DIRECTORIES_TO_CREATE = -5
+
 
 def auto_increment_prefix_number():
     """increment the prefix number if permitted"""
@@ -437,9 +441,9 @@ def DimaxRadiography(
 
         if hasattr(det, "hdf1"):
             det.hdf1.capture.put("Done")
-            det.hdf1.create_directory.put(-5)   # TODO: Why -5?
+            det.hdf1.create_directory.put(MAX_DIRECTORIES_TO_CREATE)
             det.hdf1.file_number.put(cpr_proj_num.value)
-            det.hdf1.enable.put(1)
+            det.hdf1.enable.put("Enable")
             det.hdf1.auto_increment.put("Yes")
             det.hdf1.num_capture.put(numImage)
             det.hdf1.num_captured.put(numImage)
@@ -955,27 +959,25 @@ def EdgeRadiography(
 
         if hasattr(det, "hdf1"):
             det.hdf1.capture.put("Done",)
-            det.hdf1.CreateDirectory.put(-5)
-            det.hdf1.FileNumber.put(cpr_proj_num.value)
+            det.hdf1.create_directory.put(MAX_DIRECTORIES_TO_CREATE)
+            det.hdf1.file_number.put(cpr_proj_num.value)
 
         det.cam.pco_trigger_mode.put("Auto")
-        det.cam.ImageMode.put("Multiple")
-        det.cam.NumImages.put(numImage)
+        det.cam.image_mode.put("Multiple")
+        det.cam.num_images.put(numImage)
         det.cam.pco_edge_fastscan.put(camScanSpeed)
         det.cam.pco_trigger_mode.put("Auto")
-        det.cam.SizeX.put(str(roiSizeX))
-        det.cam.SizeY.put(str(roiSizeY))
+        det.cam.size.size_x.put(roiSizeX)
+        det.cam.size.size_y.put(roiSizeY)
         det.cam.pco_global_shutter.put(camShutterMode)
         det.cam.pco_is_frame_rate_mode.put("DelayExp")
         det.cam.acquire_period.put(0)
         det.cam.frame_type.put("Normal")
 
         if hasattr(det, "hdf1"):
-            # FIXME: check these!!!
-            det.hdf1.enable_callbacks.put(1)
+            det.hdf1.enable.put("Enable")
             det.hdf1.auto_increment.put("Yes")
-            det.hdf1.num_capture.put(str(numImage+20))
-            det.hdf1.num_capture.put(str(numImage+20))
+            det.hdf1.num_capture.put(numImage+20)
             det.hdf1.num_captured.put(0)
             det.hdf1.file_path.put(filepath)
             det.hdf1.file_name.put(filename)
@@ -1027,15 +1029,15 @@ def _edgeTest(camScanSpeed,camShutterMode,roiSizeX=2560,roiSizeY=2160,pso=None):
     pso = pso or pso1
     det = pco_edge
 
-    # det.cam.scan_control.put("Standard")
+    # pso.scan_control.put("Standard")
     det.cam.array_callbacks.put("Enable")
     det.cam.num_images.put(10)
     det.cam.image_mode.put("Multiple")
     det.cam.pco_global_shutter.put(camShutterMode)
     det.cam.pco_edge_fastscan.put(camScanSpeed)
     det.cam.acquire_time.put(0.001000)
-    det.cam.size_x.put(roiSizeX)
-    det.cam.size_y.put(roiSizeY)
+    det.cam.size.size_x.put(roiSizeX)
+    det.cam.size.size_y.put(roiSizeY)
     det.cam.pco_trigger_mode.put("Auto")
     det.cam.acquire.put("Acquire")
     print("camera passes test!")
@@ -1060,7 +1062,7 @@ def _edgeSet(filepath, filename, numImage, exposureTime, frate, pso=None):
     det.hdf1.file_write_mode.put("Stream")
     det.hdf1.capture.put("Capture", wait=False)
     det.cam.num_images.put(numImage)
-    det.cam.pco_image_mode.put("Multiple")
+    det.cam.image_mode.put("Multiple")
     det.cam.acquire_time.put(exposureTime)
     det.cam.pco_trigger_mode.put("Soft/Ext")
     det.cam.pco_ready2acquire.put(0)
@@ -1073,7 +1075,7 @@ def _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, pso=
     det = pco_edge
 
     shutter.open()
-    det.cam.frame_type("Normal")
+    det.cam.frame_type.put("Normal")
     samStage.move(samInPos)
     rotStage.velocity.put(50.00000)
     rotStage.move(0.00000)
@@ -1105,12 +1107,12 @@ def _edgeInterlaceAcquisition(samInPos,samStage,numProjPerSweep,shutter, clShutt
     rotStage.set_current_position(1.0*rotStage.position%360.0)
     rotStage.velocity.put(50.00000)
     rotStage.move(0, wait=False)
-    numProjPerSweep = det.cam1.num_images_counter.value
+    numProjPerSweep = det.cam.num_images_counter.value
     print("Saving sample data ...")
-    while (det.cam1.num_captured.value != numProjPerSweep):    
+    while (det.hdf1.num_captured.value != numProjPerSweep):    
         time.sleep(1)
-    # det.cam1.acquire.put("Done")
-    # det.hdf1.acquire.put("Done")
+    # det.cam.acquire.put("Done")
+    # det.hdf1.capture.put("Done")
 
 
 def _edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, pso=None):
@@ -1122,7 +1124,7 @@ def _edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, pso=None):
     time.sleep(5)
             
     det.cam.frame_type.put("Background")
-    det.cam.num_images.put(10)
+    det.hdf1.num_images.put(10)
 
     det.cam.pco_trigger_mode.put("Auto")
     det.cam.acquire.put("Acquire")
@@ -1138,7 +1140,7 @@ def _edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, pso=None):
     # rotStage.velocity.put(50)
     # rotStage.move(0)
              
-    #    while det.cam.num_capture.value != det.cam.num_captured.value:
+    #    while det.hdf1.num_capture.value != det.hdf1.num_captured.value:
     #        time.sleep(1)                
     det.cam.acquire.put("Done")
     samStage.move(samInPos)
@@ -1171,7 +1173,7 @@ def _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter, pso
     
     shutter.close()
     time.sleep(5)            
-    #    while det.cam.num_capture.value != det.cam.num_captured.value:
+    #    while det.hdf1.num_capture.value != det.hdf1.num_captured.value:
     #        time.sleep(1)                
     det.cam.acquire.put("Done")
     samStage.move(samInPos)
@@ -1238,7 +1240,7 @@ def InterlaceScan(
         shutter.open()
                     
         filepath_top = cpr_filepath.value
-        det.hdf1.create_directory.put(-5)
+        det.hdf1.create_directory.put(MAX_DIRECTORIES_TO_CREATE)
         det.hdf1.file_number.put(cpr_proj_num.value)
         filename = cpr_filename.value             # TODO: duplicate of filenameString?
         filepathString = cpr_filepath.value
@@ -1404,7 +1406,7 @@ def InterlaceScan(
 #         _dimaxAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso)                
 #         print("dark is done!")
 #     
-#         cpr_proj_num.put(det.hdf1.file_number)
+#         cpr_proj_num.put(det.hdf1.file_number.value)
 #         # set for dark field -- end
 #         
 #         # set for new scans -- start
