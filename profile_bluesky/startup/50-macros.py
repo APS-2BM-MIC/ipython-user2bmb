@@ -522,93 +522,83 @@ def EdgeMultiPosScan(
         Defined as the shift distance when the vertical stage moves up.
         Assumes rotation axis is at image center at posInit.
     """
-              
-##### AHutch tomo configurations -- start
-    
-#    tomo_shutter.open()
 
-    if shutterMode in (0, 1):
-        camShutterMode = "Rolling Global".split()[shutterMode]
-    else:
-        print("Wrong camera shutter mode! Quit ...")
-        return False
-
-    if scanMode in (0, 1, 2):
-        camScanSpeed = "Normal Fast Fastest".split()[scanMode]
-    else:
-        print("Wrong camera scan mode! Quit...")
-        return False
-                                  
     cam = 'edge'
-    shutter = A_shutter
-                
-#### for LAT                
-#    samStage = "2bma:m20"
-    samStage = am49
-    posStage = am20
-    rotStage = bm82
-    pso = pso2
-                
-### for SAT                
-#    samStage = am49
-#    posStage = am46
-#    rotStage = bm100
-#    pso = pso2
-              
-    BL = "2bmb"
+    # motor assignments depend on station and LAT/SAT
+    motor_assignments = {
+        # [samStage, posStage, rotStage, pso]
+        'AHutch': {
+            'LAT': [am49, am20, bm82, pso2],
+            'SAT': [am49, am46, bm100, pso2]
+        },
+        'BHutch': {
+            'LAT': [bm58, bm4, bm82, pso1],
+            'SAT': [bm63, bm57, bm100, pso2]
+        },
+    }
+    station = 'AHutch'
+    #station = 'BHutch'
+    stack = 'LAT'
+    #stack = 'SAT'
+    samStage, posStage, rotStage, pso = motor_assignments[station][stack]
 
-    initEdge(samInPos=samInPos, samStage=samStage, rotStage=rotStage)
-##### AHutch tomo configurations -- end                    
+    if station == 'AHutch':
+        ##### AHutch tomo configurations -- start
+        shutter = A_shutter
+        # tomo_shutter.open()
+        if shutterMode in (0, 1):
+            camShutterMode = "Rolling Global".split()[shutterMode]
+        else:
+            print("Wrong camera shutter mode! Quit ...")
+            return False
 
-####### BHutch tomo configurations -- start
-#    initEdge()                
-#    camScanSpeed = "Fastest"
-#    camShutterMode = "Rolling"                        
-#    cam = 'edge'
-#    shutter = B_shutter
-#                
-#### for SAT                
-#    samStage = bm63
-#    posStage = bm57
-#    rotStage = bm100
-#    pso = pso2
-#                
-#### for LAT
-##    samStage = bm58
-##    posStage = bm4
-##    rotStage = bm82
-##    pso = pso1
-#                
-#    samInInitPos = samInPos                
-#    BL = "2bmb"
-####### BHutch tomo configurations -- end    
+        if scanMode in (0, 1, 2):
+            camScanSpeed = "Normal Fast Fastest".split()[scanMode]
+        else:
+            print("Wrong camera scan mode! Quit...")
+            return False
+
+        BL = "2bmb"
+
+        initEdge(samInPos=samInPos, samStage=samStage, rotStage=rotStage)
+        ##### AHutch tomo configurations -- end                    
+
+    elif station == 'BHutch':
+        ##### BHutch tomo configurations -- start
+        shutter = B_shutter
+        initEdge()
+        camScanSpeed = "Fastest"
+        camShutterMode = "Rolling"
+        samInInitPos = samInPos                
+        BL = "2bmb"
+        ####### BHutch tomo configurations -- end    
 
 
-#    posCurr = posStage.position
-#    posStageOffset = axisShift * (posCurr - refYofX0)/1000.0
-#    samStage.set_current_position(posStageOffset)
-#    cpr_arg14.put(str(posCurr))
-                
-#    ''' 
-#    this is the case in which the rotation axis move toward left side 
-#    (smaller 'center' in reconstruction)
-#    when the sample stage moves up.                                                                
-#    '''
-#    if posStep > 0:
-#        axisShift = np.abs(axisShift)    
-#    elif posStep < 0:    
-#        axisShift = -np.abs(axisShift)    
+    #    posCurr = posStage.position
+    #    posStageOffset = axisShift * (posCurr - refYofX0)/1000.0
+    #    samStage.set_current_position(posStageOffset)
+    #    cpr_arg14.put(str(posCurr))
+                    
+    #    ''' 
+    #    this is the case in which the rotation axis move toward left side 
+    #    (smaller 'center' in reconstruction)
+    #    when the sample stage moves up.                                                                
+    #    '''
+    #    if posStep > 0:
+    #        axisShift = np.abs(axisShift)    
+    #    elif posStep < 0:    
+    #        axisShift = -np.abs(axisShift)    
 
-#    ''' 
-#    this is the case in which the rotation axis move toward right side 
-#    (larger 'center' in reconstruction)
-#    when the sample stage moves up.                            
-#    '''
-#
-#    if posStep > 0:
-#        axisShift = -np.abs(axisShift)    
-#    elif posStep < 0:    
-#        axisShift = np.abs(axisShift)                                
+    #    ''' 
+    #    this is the case in which the rotation axis move toward right side 
+    #    (larger 'center' in reconstruction)
+    #    when the sample stage moves up.                            
+    #    '''
+    #
+    #    if posStep > 0:
+    #        axisShift = -np.abs(axisShift)    
+    #    elif posStep < 0:    
+    #        axisShift = np.abs(axisShift)                                
 
     if cam == 'edge':
         det = pco_edge
@@ -621,7 +611,7 @@ def EdgeMultiPosScan(
         station = 'BHutch' 
     filepath_top = cpr_filepath.value
            
-    det.hdf1.create_directory(-5)
+    det.hdf1.create_directory(MAX_DIRECTORIES_TO_CREATE)
                
     posInit = posStage.position
     pso.scan_control.put("Standard")
@@ -631,9 +621,9 @@ def EdgeMultiPosScan(
 
     det.hdf1.file_number.put(cpr_proj_num.value)
             
-#    shutter.open()
-                
-#    filepath = cpr_filepath.value
+    #    shutter.open()
+                    
+    #    filepath = cpr_filepath.value
     filename = cpr_filename.value
 
     filepathString = cpr_filepath.value
@@ -649,10 +639,9 @@ def EdgeMultiPosScan(
     # test camera -- start
     print(roiSizeX,roiSizeY)
     _edgeTest(camScanSpeed,camShutterMode,roiSizeX=roiSizeX,roiSizeY=roiSizeY,pso=pso)
-    
-                
+
     # sample scan -- start
-#    shutter.open()
+    #    shutter.open()
     if timeFile == 1:
         tf = open('~/timeSeq.txt')                    
         timeSeq = tf.readlines()
@@ -666,115 +655,93 @@ def EdgeMultiPosScan(
             
         posStage.move(posInit+ii*posStep)
 
-##### heating with Eurotherm2K:3                                            
-#        filepath = os.path.join(filepath_top, \
-#               cpr_prefix.value+ \
-#               cpr_prefix_num.value.zfill(3)+'_'+ \
-#               cpr_sample_name.value+'_'+\
-#               str(int(preTemp.value))+'C_'+\
-#               str(ii).zfill(1) + '_' + \
-#               'YPos'+str(trunc(posStage.position))+'mm_'+\
-#               make_timestamp() + '_'+\
-#               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
-#               cpr_sam_det_dist.value+'mm'+'_'+\
-#               str(exposureTime*1000)+'msecExpTime_'+str(slewSpeed)+'DegPerSec_'+\
-#               str(exposureTime*1000)+'msecExpTime_'+\
-#               str(slewSpeed)+'DegPerSec_'+\
-#               camShutterMode+'_'+\
-#               cpr_scin_thickness.value+'um'+\
-#               cpr_scin_type.value+'_'+\
-#               cpr_filter.value+'_'+\
-#               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
-#               str(trunc(am30.position))+\
-#               '_monoY_'+str(trunc(am26.position))+'_'+station) 
+        ##### heating with Eurotherm2K:3                                            
+        #        filepath = os.path.join(filepath_top, \
+        #               cpr_prefix.value+ \
+        #               cpr_prefix_num.value.zfill(3)+'_'+ \
+        #               cpr_sample_name.value+'_'+\
+        #               str(int(preTemp.value))+'C_'+\
+        #               str(ii).zfill(1) + '_' + \
+        #               'YPos'+str(trunc(posStage.position))+'mm_'+\
+        #               make_timestamp() + '_'+\
+        #               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+        #               cpr_sam_det_dist.value+'mm'+'_'+\
+        #               str(exposureTime*1000)+'msecExpTime_'+\
+        #               str(slewSpeed)+'DegPerSec_'+\
+        #               camShutterMode+'_'+\
+        #               cpr_scin_thickness.value+'um'+\
+        #               cpr_scin_type.value+'_'+\
+        #               cpr_filter.value+'_'+\
+        #               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
+        #               str(trunc(am30.position))+\
+        #               '_monoY_'+str(trunc(am26.position))+'_'+station) 
 
-##### tension with 2bma:m58
-#        s1_d1done_read.put(1)
-#        filepath = os.path.join(filepath_top, \
-#               cpr_prefix.value+ \
-#               cpr_prefix_num.value.zfill(3)+'_'+ \
-#               cpr_sample_name.value+'_'+\
-#               str('{:5.5f}'.format(s1_d1dmm_calc.value))+'N_'+\
-#               str(ii).zfill(2) + '_' + \
-#               'YPos'+str(trunc(posStage.position))+'mm_'+\
-#               make_timestamp() + '_'+\
-#               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
-#               cpr_sam_det_dist.value+'mm'+'_'+\
-#               str(exposureTime*1000)+'msecExpTime_'+\
-#               str(slewSpeed)+'DegPerSec_'+\
-#               camShutterMode+'_'+\
-#               cpr_scin_thickness.value+'um'+\
-#               cpr_scin_type.value+'_'+\
-#               cpr_filter.value+'_'+\
-#               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
-#               str(trunc(am30.position))+\
-#               '_monoY_'+str(trunc(am26.position))+'_'+station) 
+        ##### tension with 2bma:m58
+        #        s1_d1done_read.put(1)
+        #        filepath = os.path.join(filepath_top, \
+        #               cpr_prefix.value+ \
+        #               cpr_prefix_num.value.zfill(3)+'_'+ \
+        #               cpr_sample_name.value+'_'+\
+        #               str('{:5.5f}'.format(s1_d1dmm_calc.value))+'N_'+\
+        #               str(ii).zfill(2) + '_' + \
+        #               'YPos'+str(trunc(posStage.position))+'mm_'+\
+        #               make_timestamp() + '_'+\
+        #               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+        #               cpr_sam_det_dist.value+'mm'+'_'+\
+        #               str(exposureTime*1000)+'msecExpTime_'+\
+        #               str(slewSpeed)+'DegPerSec_'+\
+        #               camShutterMode+'_'+\
+        #               cpr_scin_thickness.value+'um'+\
+        #               cpr_scin_type.value+'_'+\
+        #               cpr_filter.value+'_'+\
+        #               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
+        #               str(trunc(am30.position))+\
+        #               '_monoY_'+str(trunc(am26.position))+'_'+station) 
 
-#        filepath = os.path.join(filepath_top, \
-#               cpr_prefix.value+ \
-#               cpr_prefix_num.value.zfill(3)+'_'+ \
-#               cpr_sample_name.value+'_'+\
-#               'YPos'+str(trunc(posStage.position))+'mm_'+\
-#               '0DegPos'+str(trunc(s1m2.position))+'mm_'+\
-#               '90DegPos'+str(trunc(s1m1.position))+'mm_'+\
-#               make_timestamp() + '_'+\
-#               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
-#               cpr_sam_det_dist.value+'mm'+'_'+\
-#               str(exposureTime*1000)+'msecExpTime_'+\
-#               str(slewSpeed)+'DegPerSec_'+\
-#               camShutterMode+'_'+\
-#               cpr_scin_thickness.value+'um'+\
-#               cpr_scin_type.value+'_'+\
-#               cpr_filter.value+'_'+\
-#               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
-#               str(trunc(am30.position))+\
-#               '_monoY_'+str(trunc(am26.position))+'_'+station) 
+        #        filepath = os.path.join(filepath_top, \
+        #               cpr_prefix.value+ \
+        #               cpr_prefix_num.value.zfill(3)+'_'+ \
+        #               cpr_sample_name.value+'_'+\
+        #               'YPos'+str(trunc(posStage.position))+'mm_'+\
+        #               '0DegPos'+str(trunc(s1m2.position))+'mm_'+\
+        #               '90DegPos'+str(trunc(s1m1.position))+'mm_'+\
+        #               make_timestamp() + '_'+\
+        #               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
+        #               cpr_sam_det_dist.value+'mm'+'_'+\
+        #               str(exposureTime*1000)+'msecExpTime_'+\
+        #               str(slewSpeed)+'DegPerSec_'+\
+        #               camShutterMode+'_'+\
+        #               cpr_scin_thickness.value+'um'+\
+        #               cpr_scin_type.value+'_'+\
+        #               cpr_filter.value+'_'+\
+        #               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
+        #               str(trunc(am30.position))+\
+        #               '_monoY_'+str(trunc(am26.position))+'_'+station) 
 
-#### normal filename
-        if False:       # the current way
-            filepath = os.path.join(filepath_top, \
-               cpr_prefix.value+ \
-               cpr_prefix_num.value.zfill(3)+'_'+ \
-               cpr_sample_name.value+'_'+ 
-               str(int(preTemp.value))+'C_'+\
-               str(ii).zfill(1+1)+'_'\
-               'YPos'+str(trunc(posStage.position))+'mm_'+\
-               make_timestamp() + '_'+\
-               cam+'_'+cpr_lens_mag.value+'x'+'_'+\
-               cpr_sam_det_dist.value+'mm'+'_'+\
-               str(exposureTime*1000)+'msecExpTime_'+\
-               str(slewSpeed)+'DegPerSec_'+\
-               camShutterMode+'_'+\
-               cpr_scin_thickness.value+'um'+\
-               cpr_scin_type.value+'_'+\
-               cpr_filter.value+'_'+\
-               str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
-               str(trunc(am30.position))+\
-               '_monoY_'+str(trunc(am26.position))+'_'+station)                
-        else:
-            # 2018-01-26, PRJ: I propose this looks easier to understand and maintain
-            fp = '{}{}_'.format(cpr_prefix.value, cpr_prefix_num.value.zfill(3))
-            fp += '{}_'.format(cpr_sample_name.value)
-            fp += '{}C_'.format(preTemp.value)
-            fp += '{}_'.format(str(ii).zfill(1+1))
-            fp += 'YPos{0:.3f}mm_'.format(posStage.position)
-            ##### tension with 2bma:m6                   
-            # fp += 'TensionDist{0:.3f}mm_'.format(am6.position)
-            fp += '{}_'.format(make_timestamp())
-            fp += '{}_'.format(cam)
-            fp += '{}x_'.format(cpr_lens_mag.value)
-            fp += '{}mm_'.format(cpr_sam_det_dist.value)
-            fp += '{}msecExpTime_'.format(exposureTime*1000)
-            fp += '{}DegPerSec_'.format(slewSpeed)
-            fp += '{}_'.format(camShutterMode)
-            fp += '{}um_'.format(cpr_scin_thickness.value)
-            fp += '{}_'.format(cpr_scin_type.value)
-            fp += '{}_'.format(cpr_filter.value)
-            fp += '{0:.3f}mrad_'.format(A_mirror1.angle.value)
-            fp += 'USArm{0:.3f}_'.format(am30.position)
-            fp += 'monoY{0:.3f}_'.format(am26.position)
-            fp += station
-            filepath = os.path.join(filepath_top, fp)
+        #### normal filename
+        # 2018-01-26, PRJ: I propose this looks easier to understand and maintain
+        fp = '{}{}_'.format(cpr_prefix.value, cpr_prefix_num.value.zfill(3))
+        fp += '{}_'.format(cpr_sample_name.value)
+        fp += '{}C_'.format(preTemp.value)
+        fp += '{}_'.format(str(ii).zfill(1+1))
+        fp += 'YPos{0:.3f}mm_'.format(posStage.position)
+        ##### tension with 2bma:m6                   
+        # fp += 'TensionDist{0:.3f}mm_'.format(am6.position)
+        fp += '{}_'.format(make_timestamp())
+        fp += '{}_'.format(cam)
+        fp += '{}x_'.format(cpr_lens_mag.value)
+        fp += '{}mm_'.format(cpr_sam_det_dist.value)
+        fp += '{}msecExpTime_'.format(exposureTime*1000)
+        fp += '{}DegPerSec_'.format(slewSpeed)
+        fp += '{}_'.format(camShutterMode)
+        fp += '{}um_'.format(cpr_scin_thickness.value)
+        fp += '{}_'.format(cpr_scin_type.value)
+        fp += '{}_'.format(cpr_filter.value)
+        fp += '{0:.3f}mrad_'.format(A_mirror1.angle.value)
+        fp += 'USArm{0:.3f}_'.format(am30.position)
+        fp += 'monoY{0:.3f}_'.format(am26.position)
+        fp += station
+        filepath = os.path.join(filepath_top, fp)
                    
         _edgeSet(filepath, filename, numImage, exposureTime, frate, pso=pso)
         _setPSO(slewSpeed, scanDelta, acclTime, angStart=angStart, angEnd=angEnd, pso=pso, rotStage=rotStage)                              
@@ -814,8 +781,6 @@ def EdgeMultiPosScan(
     shutter.close()
     tomo_shutter.close()
     print("sample scan is done!")
-                                
-
 
     logFile = open(logFileName,'a')
     logFile.write("Scan was done at time: " + time.asctime() + '\n')
@@ -877,6 +842,8 @@ def EdgeRadiography(
     posStage = am20
     rotStage = bm82
     pso = pso2
+    cam = "edge"
+    det = pco_edge
     BL = "2bmb"
 
     shutter = A_shutter
@@ -891,65 +858,29 @@ def EdgeRadiography(
         print("Wrong camera scan mode! Quit...")
         return False
 
-    # cam = "dimax"; det = pco_dimax
-    cam = "edge"; det = pco_edge
     camShutterMode = "Rolling"                
 
     filepath_top = cpr_filepath.value
 
-    #    filepath = os.path.join(filepath_top, cpr_prefix.value+ \
-    #                cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_' +\
-    #                cpr_sample_name.value+'_'+\
-    #                      'YPos'+str(am20.position)+'mm_'+\
-    #                cam+'_'+cpr_lens_mag.value+'x'+'_'+\
-    #                cpr_sam_det_dist.value+'mm'+'_'+\
-    #                str(exposureTime*1000)+'msecExpTime_'+'DegPerSec_'+\
-    #                camShutterMode+'_'+\
-    #                cpr_scin_thickness.value+'um'+\
-    #                cpr_scin_type.value+'_'+\
-    #                cpr_filter.value+'_'+\
-    #                str(A_mirror1.angle.value)+'mrad_USArm'+\
-    #                str(am30.position)+'_monoY_'+\
-    #                str(am26.position)+'_'+station)
-
     for ii in range(repeat):
-        if False:       # the current way
-            filepath = os.path.join(filepath_top, \
-                   cpr_prefix.value+ \
-                   cpr_prefix_num.value.zfill(3)+'_'+ 'Radiography_'+\
-                   cpr_sample_name.value+'_'+\
-                   'YPos'+str(trunc(posStage.position))+'mm_'+\
-                   make_timestamp() + '_'+\
-                   cam+'_'+cpr_lens_mag.value+'x'+'_'+\
-                   cpr_sam_det_dist.value+'mm'+'_'+\
-                   str(exposureTime*1000)+'msecExpTime_'+\
-                   camShutterMode+'_'+\
-                   cpr_scin_thickness.value+'um'+\
-                   cpr_scin_type.value+'_'+\
-                   cpr_filter.value+'_'+\
-                   str(trunc(A_mirror1.angle.value))+'mrad_USArm'+\
-                   str(trunc(am30.position))+'_monoY_'+\
-                   str(trunc(am26.position))+'_'+station)
-        else:
-            # 2018-01-26, PRJ: I propose this looks easier to understand and maintain
-            fp = '{}{}_'.format(cpr_prefix.value, cpr_prefix_num.value.zfill(3))
-            fp += 'Radiography_'
-            fp += '{}_'.format(cpr_sample_name.value)
-            fp += 'YPos{0:.3f}mm_'.format(posStage.position)
-            fp += '{}_'.format(make_timestamp())
-            fp += '{}_'.format(cam)
-            fp += '{}x_'.format(cpr_lens_mag.value)
-            fp += '{}mm_'.format(cpr_sam_det_dist.value)
-            fp += '{}msecExpTime_'.format(exposureTime*1000)
-            fp += '{}_'.format(camShutterMode)
-            fp += '{}um_'.format(cpr_scin_thickness.value)
-            fp += '{}_'.format(cpr_scin_type.value)
-            fp += '{}_'.format(cpr_filter.value)
-            fp += '{0:.3f}mrad_'.format(A_mirror1.angle.value)
-            fp += 'USArm{0:.3f}_'.format(am30.position)
-            fp += 'monoY{0:.3f}_'.format(am26.position)
-            fp += station
-            filepath = os.path.join(filepath_top, fp)
+        fp = '{}{}_'.format(cpr_prefix.value, cpr_prefix_num.value.zfill(3))
+        fp += 'Radiography_'
+        fp += '{}_'.format(cpr_sample_name.value)
+        fp += 'YPos{0:.3f}mm_'.format(posStage.position)
+        fp += '{}_'.format(make_timestamp())
+        fp += '{}_'.format(cam)
+        fp += '{}x_'.format(cpr_lens_mag.value)
+        fp += '{}mm_'.format(cpr_sam_det_dist.value)
+        fp += '{}msecExpTime_'.format(exposureTime*1000)
+        fp += '{}_'.format(camShutterMode)
+        fp += '{}um_'.format(cpr_scin_thickness.value)
+        fp += '{}_'.format(cpr_scin_type.value)
+        fp += '{}_'.format(cpr_filter.value)
+        fp += '{0:.3f}mrad_'.format(A_mirror1.angle.value)
+        fp += 'USArm{0:.3f}_'.format(am30.position)
+        fp += 'monoY{0:.3f}_'.format(am26.position)
+        fp += station
+        filepath = os.path.join(filepath_top, fp)
 
         filename = cpr_filename.value
     
@@ -1178,18 +1109,27 @@ def _edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter, pso
     # set for white field -- end
 
 
-def wait_temperature(trigTemp):
-    """wait for temperature to reach trigger temperature"""
-    preTemp_ref = preTemp.value
+def wait_temperature(T_trig, epsilon=0.1):
+    """
+    wait for temperature to reach trigger temperature
+    
+    T_trig : float
+        temperature set point
+    epsilon : float
+        how close to set point is acceptable
+    """
+    T_last = preTemp.value
     # This test requires an exact temperature match for two readings.
-    while ((preTemp.value-trigTemp)*(preTemp_ref-trigTemp)>0):
-        preTemp_ref = preTemp.value          
+    #while ((preTemp.value-T_trig)*(T_last-T_trig)>0):
+    #    T_last = preTemp.value          
+    #    time.sleep(0.5)
+
+    # Allow for inexact but close enough
+    while abs(preTemp.value - T_trig) > epsilon \
+          or abs(T_last - T_trig) > epsilon:
+        T_last = preTemp.value          
         time.sleep(0.5)
-    # TODO: Can we be more robust?
-    # close_enough = 0.1; precision_desired = 0.1  # possibly
-    #    abs(preTemp.value - preTemp_ref) < close_enough
-    # and
-    #    abs(preTemp.value - trigTemp) < precision_desired
+    # reached temperature
 
 
 def InterlaceScan(
@@ -1205,6 +1145,7 @@ def InterlaceScan(
         flatPerScan = 0, 
         darkPerScan = 0,                                                                    
         accl = 60.0):
+    """interlace scan not used as much now"""
     cam = "edge" 
     shutter = A_shutter
     samStage = am49
@@ -1251,6 +1192,7 @@ def InterlaceScan(
         samInPos = samStage.position
         samOutPos = samInPos + samOutPos                                
                                             
+        # TODO: reefactor per above (build up `fp` by parts)
         filepath = os.path.join(filepath_top, \
                cpr_prefix.value+ \
                cpr_prefix_num.value.zfill(3)+'_'+ \
