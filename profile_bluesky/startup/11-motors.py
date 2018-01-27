@@ -31,9 +31,10 @@ bm100    = ServoRotationStage("2bmb:m100", name="bm100")    # rotation stage in 
 furnaceY = EpicsMotor("2bma:m55", name="furnaceY")
 bm4      = EpicsMotor("2bmb:m4",  name="bm4")               # posStage in B LAT
 bm57     = EpicsMotor("2bmb:m57", name="bm57")              # posStage in B SAT
+bm58     = EpicsMotor("2bmb:m58", name="bm58")              # samStage in B SAT
 
 append_wa_motor_list(am20, am46, am49, bm82, bm63, bm100)
-append_wa_motor_list(furnaceY, bm4, bm57)
+append_wa_motor_list(furnaceY, bm4, bm57, bm58)
 
 s1m1 = EpicsMotor("2bmS1:m1", name="s1m1")
 s1m2 = EpicsMotor("2bmS1:m2", name="s1m2")
