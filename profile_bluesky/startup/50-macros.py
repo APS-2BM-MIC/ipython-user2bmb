@@ -403,6 +403,7 @@ def DimaxRadiography(
             # TODO: Which is easier to read & edit?
             #   'YPos'+str(int(posStage.position*1000)/1000.0)+'mm_'
             #   'YPos'+str(trunc(posStage.position))+'mm_'
+            #   'YPos{}mm_'.format(trunc(posStage.position))
             #   'YPos{0:.3f}mm_'.format(posStage.position)    # NOTE: rounds instead of truncates
             #   'YPos%.3fmm_' % posStage.position    # NOTE: rounds instead of truncates
 
