@@ -15,6 +15,23 @@ def auto_increment_prefix_number():
         cpr_prefix_num.put(str(int(cpr_prefix_num.value)+1))
 
 
+def string_by_index(choices_str, index, delim=" "):
+    """
+    pick a substring from a delimited string using the index as reference
+    
+    choices_str : str
+        string with possible choices, separated by delimiter
+    delim : str
+        string delimiter
+    index : int
+        number (0-based) of label to be selected
+    """
+    choices = choices_str.split(delim)
+    if index in range(len(choices)):
+        return choices[index]
+    return None
+
+
 def make_timestamp(the_time=None):
     """
     such as: 2018-01-12 15:40:46 is FriJan12_15_40_46_2018
@@ -521,10 +538,13 @@ def EdgeMultiPosScan(
     axisShift : float
         Rotation axis shift in unit um/mm. 
         Defined as the shift distance when the vertical stage moves up.
-        Assumes rotation axis is at image center at posInit.
+        Assumes rotation axis is at image center (`posInit`) when this 
+        function is called.
     """
 
+    BL = "2bmb"     # TODO: is this used?
     cam = 'edge'
+    det = pco_edge
     # motor assignments depend on station and LAT/SAT
     motor_assignments = {
         # [samStage, posStage, rotStage, pso]
@@ -547,19 +567,15 @@ def EdgeMultiPosScan(
         ##### AHutch tomo configurations -- start
         shutter = A_shutter
         # tomo_shutter.open()
-        if shutterMode in (0, 1):
-            camShutterMode = "Rolling Global".split()[shutterMode]
-        else:
+        camShutterMode = string_by_index("Rolling Global", shutterMode)
+        if camShutterMode is None:
             print("Wrong camera shutter mode! Quit ...")
             return False
 
-        if scanMode in (0, 1, 2):
-            camScanSpeed = "Normal Fast Fastest".split()[scanMode]
-        else:
+        camScanSpeed = string_by_index("Normal Fast Fastest", scanMode)
+        if camScanSpeed is None:
             print("Wrong camera scan mode! Quit...")
             return False
-
-        BL = "2bmb"
 
         initEdge(samInPos=samInPos, samStage=samStage, rotStage=rotStage)
         ##### AHutch tomo configurations -- end                    
@@ -570,10 +586,9 @@ def EdgeMultiPosScan(
         initEdge()
         camScanSpeed = "Fastest"
         camShutterMode = "Rolling"
-        samInInitPos = samInPos                
-        BL = "2bmb"
+        samInInitPos = samInPos  
         ####### BHutch tomo configurations -- end    
-
+    #-------------------------------------------------------------------
 
     #    posCurr = posStage.position
     #    posStageOffset = axisShift * (posCurr - refYofX0)/1000.0
@@ -601,15 +616,6 @@ def EdgeMultiPosScan(
     #    elif posStep < 0:    
     #        axisShift = np.abs(axisShift)                                
 
-    if cam == 'edge':
-        det = pco_edge
-    elif cam == 'dimax':
-        det = pco_dimax   
-
-    if samStage.user_setpoint.pvname.startswith('2bma'):
-        station = 'AHutch'
-    elif samStage.user_setpoint.pvname.startswith('2bmb'):    
-        station = 'BHutch' 
     filepath_top = cpr_filepath.value
            
     det.hdf1.create_directory(MAX_DIRECTORIES_TO_CREATE)
@@ -638,8 +644,8 @@ def EdgeMultiPosScan(
     numImage = numProjPerSweep+20
     
     # test camera -- start
-    print(roiSizeX,roiSizeY)
-    _edgeTest(camScanSpeed,camShutterMode,roiSizeX=roiSizeX,roiSizeY=roiSizeY,pso=pso)
+    print(roiSizeX, roiSizeY)
+    _edgeTest(camScanSpeed, camShutterMode, roiSizeX=roiSizeX, roiSizeY=roiSizeY, pso=pso)
 
     # sample scan -- start
     #    shutter.open()
@@ -1013,6 +1019,9 @@ def _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, pso=
     pso.fly()
     if pso.pso_fly.value == 0 & clShutter == 1:               
         shutter.close()     
+    # Does this change the RVAL also?  Really need to change the RVAL at the same time.
+    # If offset is FIXED, then writing to VAL also writes to DVAL.
+    # TODO: verify this
     rotStage.set_current_position(1.0*rotStage.position%360.0)
     rotStage.velocity.put(50.00000)
     time.sleep(1)
