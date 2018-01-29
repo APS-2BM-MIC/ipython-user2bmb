@@ -109,8 +109,8 @@ class PSO_Device(Device):
     start_pos = Component(EpicsSignal, "startPos.VAL")
     end_pos = Component(EpicsSignal, "endPos.VAL")
     scan_delta = Component(EpicsSignal, "scanDelta.VAL")
-    pso_taxi = Component(EpicsSignal, "taxi.VAL")
-    pso_fly = Component(EpicsSignal, "fly.VAL")
+    pso_taxi = Component(EpicsSignal, "taxi.VAL", put_complete=True)
+    pso_fly = Component(EpicsSignal, "fly.VAL", put_complete=True)
     
     def taxi(self):
         self.pso_taxi.put("Taxi")
