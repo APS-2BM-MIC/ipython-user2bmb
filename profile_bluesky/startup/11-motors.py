@@ -25,9 +25,9 @@ append_wa_motor_list(tomo_shutter.motor)
 am20     = EpicsMotor("2bma:m20", name="am20")              # posStage in A LAT
 am46     = EpicsMotor("2bma:m46", name="am46")              # posStage in A SAT
 am49     = EpicsMotor("2bma:m49", name="am49")              # sample stage in A
-bm82     = ServoRotationStage("2bmb:m82", name="bm82")      # rotation stage in A
+bm82     = EpicsMotorWithServo("2bmb:m82", name="bm82")     # rotation stage in A
 bm63     = EpicsMotor("2bmb:m63", name="bm63")              # sample stage in B
-bm100    = ServoRotationStage("2bmb:m100", name="bm100")    # rotation stage in B
+bm100    = EpicsMotorWithServo("2bmb:m100", name="bm100")   # rotation stage in B
 furnaceY = EpicsMotor("2bma:m55", name="furnaceY")
 bm4      = EpicsMotor("2bmb:m4",  name="bm4")               # posStage in B LAT
 bm57     = EpicsMotor("2bmb:m57", name="bm57")              # posStage in B SAT

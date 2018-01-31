@@ -15,16 +15,19 @@ from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
 from APS_BlueSky_tools.devices import userCalcsDevice
 
 
-class MotorDialValuesDevice(Device):
-    value = Component(EpicsSignalRO, ".DRBV")
-    setpoint = Component(EpicsSignal, ".DVAL")
+class EpicsMotorWithDial(EpicsMotor):
+    """
+    add motor record's dial coordinates to EpicsMotor
+    
+    USAGE::
+    
+        m1 = EpicsMotorWithDial('xxx:m1', name='m1')
+    
+    """
+    dial = Component(EpicsSignal, ".DRBV", write_pv=".DVAL")
 
 
-class MyEpicsMotorWithDial(EpicsMotor):
-    dial = Component(MotorDialValuesDevice, "")
-
-
-class ServoRotationStage(EpicsMotor):
+class EpicsMotorWithServo(EpicsMotor):
     """extend basic motor support to enable/disable the servo loop controls"""
     
     # values: "Enable" or "Disable"
