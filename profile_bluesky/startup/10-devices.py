@@ -64,6 +64,10 @@ class AB_Shutter(Device):
     pss_close = Component(EpicsSignal, ":close")
     
     # TODO: how to know if is open or closed?  Need PV(s)
+
+    def __init__(*args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.delay = 1.0  # a hack because the shutter won’t say when it is done
     
     def open(self):
         """tells PSS to open the shutter"""
@@ -72,6 +76,21 @@ class AB_Shutter(Device):
     def close(self):
         """tells PSS to close the shutter"""
         self.pss_close.put(1)
+
+    def set(self, value):
+        """value is either open or close"""
+        status = DeviceStatus(self)
+        def run():
+            if value == "open":
+                self.open()
+            elif value == "close":
+                self.close()
+            # time.sleep(self.delay) ???
+            status._finished(success=True)
+        
+        thread = threading.Thread(target=run)
+        thread.start()      
+        return status
 
 
 class Motor_Shutter(Device):
@@ -120,6 +139,15 @@ class PSO_Device(Device):
     
     def fly(self):
         self.pso_fly.put("Fly")
+    
+    def set(self, value):
+        """value is either Taxi or Fly"""
+        # launch the puts in a thread that notifies when done
+        # BS needs the set() not not block
+        if value == "Taxi":
+            self.taxi()
+        elif value == "Fly":
+            self.fly()
 
 
 class MyPcoCam(PcoDetectorCam):
