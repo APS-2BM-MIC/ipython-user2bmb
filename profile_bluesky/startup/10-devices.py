@@ -77,7 +77,7 @@ class AB_Shutter(Device):
         """tells PSS to close the shutter"""
         self.pss_close.put(1)
 
-    def set(self, value):
+    def set(self, value):       # interface for BlueSky plans
         """value is either open or close"""
         status = DeviceStatus(self)
         def run():
@@ -85,10 +85,15 @@ class AB_Shutter(Device):
                 self.open()
             elif value == "close":
                 self.close()
-            # time.sleep(self.delay) ???
+            else:
+                msg = "value should be either open or close."
+                msg + " received " + str(value)
+                raise ValueError(msg)
+            yield from sleep(self.delay)
             status._finished(success=True)
         
         thread = threading.Thread(target=run)
+        # TODO: look at Positioner code for being conservative about how many threads to create
         thread.start()      
         return status
 
@@ -123,8 +128,27 @@ class Motor_Shutter(Device):
         """move motor to BEAM BLOCKED position"""
         self.motor.move(self.closed_position)
 
+    def set(self, value):       # interface for BlueSky plans
+        """value is either open or close"""
+        status = DeviceStatus(self)
+        def run():
+            if value == "open":
+                yield from mv(self.motor, self.open_position)
+            elif value == "close":
+                yield from mv(self.motor, self.close_position)
+            else:
+                msg = "value should be either open or close."
+                msg + " received " + str(value)
+                raise ValueError(msg)
+            status._finished(success=True)
+        
+        thread = threading.Thread(target=run)
+        thread.start()      
+        return status
+
 
 class PSO_Device(Device):
+    """PSO means ..."""
     # TODO: this might fit the ophyd "Flyer" API
     slew_speed = Component(EpicsSignal, "slewSpeed.VAL")
     scan_control = Component(EpicsSignal, "scanControl.VAL", string=True)
@@ -139,15 +163,26 @@ class PSO_Device(Device):
     
     def fly(self):
         self.pso_fly.put("Fly")
-    
-    def set(self, value):
+
+    def set(self, value):       # interface for BlueSky plans
         """value is either Taxi or Fly"""
-        # launch the puts in a thread that notifies when done
-        # BS needs the set() not not block
-        if value == "Taxi":
-            self.taxi()
-        elif value == "Fly":
-            self.fly()
+        status = DeviceStatus(self)
+        def run():
+            if value == "Taxi":
+                self.taxi()
+            elif value == "Fly":
+                self.fly()
+            else:
+                msg = "value should be either Taxi or Fly."
+                msg + " received " + str(value)
+                raise ValueError(msg)
+            yield from sleep(self.delay)
+            status._finished(success=True)
+        
+        thread = threading.Thread(target=run)
+        # TODO: look at Positioner code for being conservative about how many threads to create
+        thread.start()      
+        return status
 
 
 class MyPcoCam(PcoDetectorCam):
