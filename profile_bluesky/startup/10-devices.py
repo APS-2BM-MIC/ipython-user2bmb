@@ -13,26 +13,10 @@ from ophyd import AreaDetector, PcoDetectorCam
 from ophyd import SingleTrigger, ImagePlugin, HDF5Plugin
 from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
 from APS_BlueSky_tools.devices import userCalcsDevice
-from APS_BlueSky_tools.devices import ApsPssShutter, EpicsMotorShutter
-
-
-class EpicsMotorWithDial(EpicsMotor):
-    """
-    add motor record's dial coordinates to EpicsMotor
-    
-    USAGE::
-    
-        m1 = EpicsMotorWithDial('xxx:m1', name='m1')
-    
-    """
-    dial = Component(EpicsSignal, ".DRBV", write_pv=".DVAL")
-
-
-class EpicsMotorWithServo(EpicsMotor):
-    """extend basic motor support to enable/disable the servo loop controls"""
-    
-    # values: "Enable" or "Disable"
-    servo = Component(EpicsSignal, ".CNEN", string=True)
+from APS_BlueSky_tools.devices import ApsPssShutter
+from APS_BlueSky_tools.devices import EpicsMotorShutter
+from APS_BlueSky_tools.devices import EpicsMotorWithDial
+from APS_BlueSky_tools.devices import EpicsMotorWithServo
 
 
 class Mirror1_A(Device):
