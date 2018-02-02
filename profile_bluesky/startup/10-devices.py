@@ -13,6 +13,7 @@ from ophyd import AreaDetector, PcoDetectorCam
 from ophyd import SingleTrigger, ImagePlugin, HDF5Plugin
 from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
 from APS_BlueSky_tools.devices import userCalcsDevice
+from APS_BlueSky_tools.devices import ApsPssShutter, EpicsMotorShutter
 
 
 class EpicsMotorWithDial(EpicsMotor):
@@ -44,107 +45,6 @@ class Mirror1_A(Device):
     """
     angle = Component(EpicsSignal, "angl")
     average = Component(EpicsSignal, "avg")
-
-
-class AB_Shutter(Device):
-    """
-    A or B station shutter (PSS item)
-    
-    USAGE::
-
-        A_shutter = AB_Shutter("2bma:A_shutter", name="A_shutter")
-        A_shutter.open()
-        A_shutter.close()
-
-        B_shutter = AB_Shutter("2bma:B_shutter", name="B_shutter")
-        B_shutter.close()
-
-    """
-    pss_open = Component(EpicsSignal, ":open")
-    pss_close = Component(EpicsSignal, ":close")
-    
-    # TODO: how to know if is open or closed?  Need PV(s)
-
-    def __init__(*args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.delay = 1.0  # a hack because the shutter won’t say when it is done
-    
-    def open(self):
-        """tells PSS to open the shutter"""
-        self.pss_open.put(1)
-    
-    def close(self):
-        """tells PSS to close the shutter"""
-        self.pss_close.put(1)
-
-    def set(self, value):       # interface for BlueSky plans
-        """value is either open or close"""
-        status = DeviceStatus(self)
-        def run():
-            if value == "open":
-                self.open()
-            elif value == "close":
-                self.close()
-            else:
-                msg = "value should be either open or close."
-                msg + " received " + str(value)
-                raise ValueError(msg)
-            yield from sleep(self.delay)
-            status._finished(success=True)
-        
-        thread = threading.Thread(target=run)
-        # TODO: look at Positioner code for being conservative about how many threads to create
-        thread.start()      
-        return status
-
-
-class Motor_Shutter(Device):
-    """
-    a shutter, implemented with a motor
-    
-    USAGE::
-
-        tomo_shutter = Motor_Shutter("2bma:m23", name="tomo_shutter")
-        tomo_shutter.open()
-        tomo_shutter.close()
-
-    """
-    motor = Component(EpicsMotor, "")
-    closed_position = 1.0
-    open_position = 0.0
-    _tolerance = 0.01
-    
-    def isopen(self):
-        return abs(self.motor.position - self.open_position) <= self._tolerance
-    
-    def isclosed(self):
-        return abs(self.motor.position - self.closed_position) <= self._tolerance
-    
-    def open(self):
-        """move motor to BEAM NOT BLOCKED position"""
-        self.motor.move(self.open_position)
-    
-    def close(self):
-        """move motor to BEAM BLOCKED position"""
-        self.motor.move(self.closed_position)
-
-    def set(self, value):       # interface for BlueSky plans
-        """value is either open or close"""
-        status = DeviceStatus(self)
-        def run():
-            if value == "open":
-                yield from mv(self.motor, self.open_position)
-            elif value == "close":
-                yield from mv(self.motor, self.close_position)
-            else:
-                msg = "value should be either open or close."
-                msg + " received " + str(value)
-                raise ValueError(msg)
-            status._finished(success=True)
-        
-        thread = threading.Thread(target=run)
-        thread.start()      
-        return status
 
 
 class PSO_Device(Device):

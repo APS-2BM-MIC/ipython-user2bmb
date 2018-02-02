@@ -2,7 +2,6 @@ print(__file__)
 
 """motors, stages, positioners, ..."""
 
-tomo_shutter = Motor_Shutter("2bma:m23", name="tomo_shutter")
 
 # generic motor name: {station}m{number}
 am6  = EpicsMotor("2bma:m6",  name="am6")     # ?
@@ -18,7 +17,6 @@ am32 = EpicsMotor("2bma:m32", name="am32")    # ? M2Y
 
 # report these in default `wa` command
 append_wa_motor_list(am6, am7, am25, am26, am27, am28, am29, am30, am31, am32)
-append_wa_motor_list(tomo_shutter.motor)
 
 
 # TODO: should some of these be part of a Device? sample&rot&pos stages are grouped, for example

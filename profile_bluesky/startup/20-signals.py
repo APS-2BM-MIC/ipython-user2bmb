@@ -7,8 +7,12 @@ aps_current = EpicsSignalRO("S:SRcurrentAI", name="aps_current")
 
 # note: see 10-devices.py for how Devices are constructed
 
-A_shutter = AB_Shutter("2bma:A_shutter", name="A_shutter")
-B_shutter = AB_Shutter("2bma:B_shutter", name="B_shutter")
+A_shutter = ApsPssShutter("2bma:A_shutter", name="A_shutter")
+B_shutter = ApsPssShutter("2bma:B_shutter", name="B_shutter")
+
+tomo_shutter = EpicsMotorShutter("2bma:m23", name="tomo_shutter")
+append_wa_motor_list(tomo_shutter.motor)
+
 A_filter = EpicsSignal("2bma:fltr1:select.VAL", name="A_filter")
 A_mirror1 = Mirror1_A("2bma:M1", name="A_mirror1")
 A_slit1_h_center = EpicsSignal("2bma:Slit1Hcenter", name="A_slit1_h_center")
