@@ -2,8 +2,41 @@ print(__file__)
 
 # Bluesky plans (scans)
 
+def _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, pso=None, rotStage=None):
+    pso = pso or pso1
+    rotStage = rotStage or bm82
+    det = pco_edge
 
-# FIXME:  These are just notes from a phone conversation 2018-02-01 with Dan Allan
+    yield from abs_set(shutter, "open", wait=True)
+    yield from abs_set(det.cam.frame_type, "Normal")
+    yield from mv(samStage, samInPos)
+    yield from mv(rotStage.velocity, 50.0)
+    yield from mv(rotStage, 0.00)
+    
+    # back off to the ramp-up point
+    yield from abs_set(pso, "taxi", wait=True)
+
+    # runt eh fly scan
+    yield from abs_set(pso, "fly", wait=True)
+
+    if pso.pso_fly.value == 0 & clShutter == 1:               
+        yield from abs_set(shutter, "close", wait=True)
+    # Does this change the RVAL also?  Really need to change the RVAL at the same time.
+    # If offset is FIXED, then writing to VAL also writes to DVAL.
+    # TODO: verify this
+    # RVAL is not changed, only offset
+    yield from abs_set(rotStage.set_use_switch, "Set", wait=True)
+    yield from abs_set(rotStage.user_setpoint, 1.0*(rotStage.position%360.0), wait=True)
+    yield from abs_set(rotStage.set_use_switch, "Use", wait=True)
+
+    yield from mv(rotStage.velocity, 50.0)
+    yield from time.sleep(1)
+    yield from mv(rotStage, 0.00)
+    # shutter.close()
+    while (det.hdf1.num_captured.value != numProjPerSweep):    
+        yield from time.sleep(1)        
+
+# FIXME:  Following are just notes from a phone conversation 2018-02-01 with Dan Allan
 
 
 def bluesky_plan_circa_2015():
