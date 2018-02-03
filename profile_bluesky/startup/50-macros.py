@@ -1018,12 +1018,14 @@ def _edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, pso=
     pso.taxi()
     pso.fly()
     if pso.pso_fly.value == 0 & clShutter == 1:               
-        shutter.close()     
-    # Does this change the RVAL also?  Really need to change the RVAL at the same time.
-    # If offset is FIXED, then writing to VAL also writes to DVAL.
-    # TODO: verify this
+        shutter.close()
+
+    # ensure `.RVAL` changes (not `.OFF`)
+    foff_previous = rotStage.offset_freeze_switch.value
+    rotStage.offset_freeze_switch.put("Fixed")
     rotStage.set_current_position(1.0*rotStage.position%360.0)
-    # TODO: for plan: yield from mv(rotStage.velocity, 50.0000)
+    rotStage.offset_freeze_switch.put(foff_previous)
+
     rotStage.velocity.put(50.00000)
     time.sleep(1)
     rotStage.move(0.00000)
