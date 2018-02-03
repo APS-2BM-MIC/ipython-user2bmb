@@ -5,7 +5,7 @@ print(__file__)
 
 
 import time
-from ophyd import Component, Device, DeviceStatus
+from ophyd import Component, Device, DeviceStatus, Signal
 from ophyd import EpicsMotor, EpicsScaler
 from ophyd import EpicsSignal, EpicsSignalRO, EpicsSignalWithRBV
 from ophyd import PVPositioner, PVPositionerPC
@@ -33,7 +33,25 @@ class Mirror1_A(Device):
 
 
 class PSO_Device(Device):
-    """PSO means ..."""
+    """
+    Operate the motion trajectory controls of an Aerotech Ensemble controller
+    
+    note: PSO means Position Synchronized Output (Aerotech's term)
+    
+    USAGE:
+    
+        pso1 = PSO_Device("2bmb:PSOFly1:", name="pso1")
+        #
+        # ... configure the pso1 object
+        #
+        pso1.set("taxi")    # or pso1.taxi() interactively
+        pso1.set("fly")     # or pso1.fly() interactively
+        
+        # in a plan, use this instead
+        yield from abs_set(pso1, "taxi", wait=True)
+        yield from abs_set(pso1, "fly", wait=True)
+
+    """
     # TODO: this might fit the ophyd "Flyer" API
     slew_speed = Component(EpicsSignal, "slewSpeed.VAL")
     scan_control = Component(EpicsSignal, "scanControl.VAL", string=True)
@@ -42,31 +60,57 @@ class PSO_Device(Device):
     scan_delta = Component(EpicsSignal, "scanDelta.VAL")
     pso_taxi = Component(EpicsSignal, "taxi.VAL", put_complete=True)
     pso_fly = Component(EpicsSignal, "fly.VAL", put_complete=True)
+    busy = Signal(value=False, name="busy")
     
     def taxi(self):
+        """
+        request move to taxi position, interactive use
+        
+        Since ``pso_taxi`` has the ``put_complete=True`` attribute,
+        this will block until the move is complete.
+        
+        (note: ``2bmb:PSOFly1:taxi.RTYP`` is a ``busy`` record.)
+        """
+        # TODO: verify that this blocks until complete
         self.pso_taxi.put("Taxi")
     
     def fly(self):
+        """
+        request fly scan to start, interactive use
+        
+        Since ``pso_fly`` has the ``put_complete=True`` attribute,
+        this will block until the move is complete.
+        """
+        # TODO: verify that this blocks until complete
         self.pso_fly.put("Fly")
 
     def set(self, value):       # interface for BlueSky plans
         """value is either Taxi or Fly"""
+        if str(value).lower() not in ("fly", "taxi"):
+            msg = "value should be either Taxi or Fly."
+            msg + " received " + str(value)
+            raise ValueError(msg)
+
+        if self.busy.value:
+            raise RuntimeError("shutter is operating")
+
         status = DeviceStatus(self)
-        def run():
-            if value == "Taxi":
+        
+        def action():
+            """the real action of ``set()`` is here"""
+            if str(value).lower() == "taxi":
                 self.taxi()
-            elif value == "Fly":
+            elif str(value).lower() == "fly":
                 self.fly()
-            else:
-                msg = "value should be either Taxi or Fly."
-                msg + " received " + str(value)
-                raise ValueError(msg)
-            yield from sleep(self.delay)
+
+        def run_and_wait():
+            """handle the ``action()`` in a thread"""
+            self.busy.put(True)
+            action()
+            self.busy.put(False)
             status._finished(success=True)
         
-        thread = threading.Thread(target=run)
-        # TODO: look at Positioner code for being conservative about how many threads to create
-        thread.start()      
+        threading.Thread(target=run_and_delay, daemon=True).start()
         return status
 
 
