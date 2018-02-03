@@ -41,7 +41,7 @@ def _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1,
 
 def bluesky_plan_circa_2015():
     """This syntax was refactored into `abs_set()`"""
-    yield Msg(‘set’, pso1, ‘Taxi’)
+    yield Msg("set", pso1, "Taxi")
 
 
 
@@ -51,20 +51,20 @@ def bluesky_plan_circa_2015():
 
 
 def example_plan1():
-    yield from abs_set(pso1, ‘Taxi’, group=’A’)
-    yield from wait(‘A’)
-    yield from abs_set(pso1, ‘Fly’, group=’B’)
-    yield from wait(‘B’)
+    yield from abs_set(pso1, "Taxi", group="A")
+    yield from wait("A")
+    yield from abs_set(pso1, "Fly", group="B")
+    yield from wait("B")
 
 
 def example_plan2():
-    yield from abs_set(pso1, ‘Taxi’, wait=True)
-    yield from abs_set(pso1, ‘Fly’, wait=True)
+    yield from abs_set(pso1, "Taxi", wait=True)
+    yield from abs_set(pso1, "Fly", wait=True)
 
 
 def example_plan3():
-    yield from mv(pso1, ‘Taxi’)  # waits by default
-    yield from mv(pso1, ‘Fly’)
+    yield from mv(pso1, "Taxi")  # waits by default
+    yield from mv(pso1, "Fly")
 
 """
 The idea with mv is this:
@@ -73,7 +73,7 @@ The idea with mv is this:
 Note:
 
 ===========================   ======================================
-don't use in plan()           correct way to write in plan()
+don"t use in plan()           correct way to write in plan()
 ===========================   ======================================
 some.device.put("config")     yield from mv(some.device, "config")
 motor.move(52)                yield from mv(motor, 52)
@@ -86,12 +86,12 @@ differentiate if the plan is being run in simulation and not actually
 change the underlying EPICS PV.
 
 
-# RunEngine iterates through plan, receives Msg(‘set’, pso1, ‘Taxi’)
+# RunEngine iterates through plan, receives Msg("set", pso1, "Taxi")
 
 
-# RunEngine looks at RunEngine._command_registry and finds that ‘set’ is mapped to RunEngine._set. It calls RunEngine._set(Msg(‘set’, pso1, ‘Taxi’)).
-# RunEngine._set calls pso1.set(‘taxi’) and gets back a status object.
-# The RE stashes that status object in a local cache. Perhaps later the plan will ask the RunEngine to wait on the status object via Msg(‘wait’, …)
+# RunEngine looks at RunEngine._command_registry and finds that "set" is mapped to RunEngine._set. It calls RunEngine._set(Msg("set", pso1, "Taxi")).
+# RunEngine._set calls pso1.set("taxi") and gets back a status object.
+# The RE stashes that status object in a local cache. Perhaps later the plan will ask the RunEngine to wait on the status object via Msg("wait", …)
 
 
 Additionally, RunEngine._set is doing other good stuff for us, like keeping track of the fact that this device is in motion.
@@ -102,5 +102,5 @@ Additionally, RunEngine._set is doing other good stuff for us, like keeping trac
 Note: Remember to search all plans for `time.sleep(X)` and replace with `yield from sleep(X)`
 
 
-All these “plan stubs” (plans that don’t generate runs like count or scan do) are in bluesky.plans pre-0.11.0 and bluesky.plan_stubs in v0.11.0+.
+All these 'plan stubs' (plans that don't generate runs like count or scan do) are in bluesky.plans pre-0.11.0 and bluesky.plan_stubs in v0.11.0+.
 """
