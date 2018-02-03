@@ -16,17 +16,18 @@ def _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1,
     # back off to the ramp-up point
     yield from abs_set(pso, "taxi", wait=True)
 
-    # runt eh fly scan
+    # run the fly scan
     yield from abs_set(pso, "fly", wait=True)
 
     if pso.pso_fly.value == 0 & clShutter == 1:               
         yield from abs_set(shutter, "close", wait=True)
-    # Does this change the RVAL also?  Really need to change the RVAL at the same time.
-    # If offset is FIXED, then writing to VAL also writes to DVAL.
-    # TODO: verify this
-    # RVAL is not changed, only offset
+
     yield from abs_set(rotStage.set_use_switch, "Set", wait=True)
+    # ensure `.RVAL` changes (not `.OFF`)
+    foff_previous = rotStage.offset_freeze_switch.value
+    yield from abs_set(rotStage.offset_freeze_switch, "Fixed", wait=True)
     yield from abs_set(rotStage.user_setpoint, 1.0*(rotStage.position%360.0), wait=True)
+    yield from abs_set(rotStage.offset_freeze_switch, foff_previous, wait=True)
     yield from abs_set(rotStage.set_use_switch, "Use", wait=True)
 
     yield from mv(rotStage.velocity, 50.0)
