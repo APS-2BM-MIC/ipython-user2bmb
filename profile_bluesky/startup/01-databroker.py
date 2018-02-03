@@ -2,7 +2,6 @@ print(__file__)
 
 # set up the data broker (db)
 
-import os
 callback_db = {}
 
 # load config from ~/.config/databroker/mongodb_config.yml
