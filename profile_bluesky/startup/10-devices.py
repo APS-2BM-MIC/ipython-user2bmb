@@ -116,7 +116,6 @@ class PSO_Device(Device):
 
 class MyPcoCam(PcoDetectorCam):
     """PCO Dimax detector"""
-    array_callbacks = Component(EpicsSignal, "ArrayCallbacks")
     pco_cancel_dump = Component(EpicsSignal, "pco_cancel_dump")
     pco_live_view = Component(EpicsSignal, "pco_live_view")
     pco_trigger_mode = Component(EpicsSignal, "pco_trigger_mode")
