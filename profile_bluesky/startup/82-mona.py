@@ -45,6 +45,7 @@ class MonaCallback0MQ(object):
             rotation_name=self.rotation_name)
 
 
+# TODO: remove this demo code  that would be run directly from ipython command line, per #8
 def demo_mona_count():
     """
     show how to use stream an image signal for MONA via 0MQ
@@ -74,6 +75,7 @@ def demo_mona_count():
     RE(mona_core([scaler], adsimdet.cam.acquire, num=3))
 
 
+# TODO: remove this demo code  that would be run directly from ipython command line, per #8
 def demo_mona_motor_scan(detectors, area_det, motor, start, finish, num=10, md={}):
     """
     show how to use a motor and stream an image signal for MONA via 0MQ
@@ -115,6 +117,7 @@ def demo_mona_motor_scan(detectors, area_det, motor, start, finish, num=10, md={
     RE(mona_core(detectors, adsimdet.cam.acquire, num=3), md=metadata)
 
 
+# TODO: remove this demo code that would be run directly from ipython command line, per #8
 def demo_setup_mona_callback_as_zmq_client(host=None):
     """
     Prepare to demo the MONA 0MQ callback chain
