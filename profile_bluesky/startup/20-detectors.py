@@ -2,7 +2,8 @@ print(__file__)
 
 """various detectors and other signals"""
 
-scaler = EpicsScaler('2bmb:scaler1', name='scaler')
+#scaler = EpicsScaler('2bmb:scaler1', name='scaler')
+scaler = ScalerC('2bmb:scaler1', name='scaler')
 
 
 # see 25-pco_dimax.py for PCO Dimax detector
