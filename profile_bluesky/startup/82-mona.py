@@ -45,11 +45,10 @@ class MonaCallback0MQ(object):
             rotation_name=self.rotation_name)
 
 
-# TODO: remove this demo code  that would be run directly from ipython command line, per #8
-def demo_mona_count():
-    """
-    show how to use stream an image signal for MONA via 0MQ
-    """
+"""
+Demo: stream an image signal for MONA via 0MQ
++++++++++++++++++++++++++++++++++++++++++++++
+
     calc2 = calcs.calc2
     swait_setup_incrementer(calc1)
     swait_setup_random_number(calc2)
@@ -75,17 +74,9 @@ def demo_mona_count():
     RE(mona_core([scaler], adsimdet.cam.acquire, num=3))
 
 
-# TODO: remove this demo code  that would be run directly from ipython command line, per #8
-def demo_mona_motor_scan(detectors, area_det, motor, start, finish, num=10, md={}):
-    """
-    show how to use a motor and stream an image signal for MONA via 0MQ
-    
-    EXAMPLE:
-    
-        zmq_talker = demo_setup_mona_callback_as_zmq_client()
-        demo_mona_motor_scan([scaler], adsimdet, m1, -1, 0, num=1)
-    
-    """
+Demo: move a motor and stream an image signal for MONA via 0MQ
++++++++++++++++++++++++++++++++++++++++++++++
+
     ad_continuous_setup(area_det, acq_time=0.1)
     scaler.preset_time.put(0.5)
     scaler.channels.read_attrs = ['chan1', 'chan2', 'chan3', 'chan6']
@@ -116,9 +107,10 @@ def demo_mona_motor_scan(detectors, area_det, motor, start, finish, num=10, md={
     
     RE(mona_core(detectors, adsimdet.cam.acquire, num=3), md=metadata)
 
+"""
 
-# TODO: remove this demo code that would be run directly from ipython command line, per #8
-def demo_setup_mona_callback_as_zmq_client(host=None):
+
+def setup_mona_callback_as_zmq_client(host=None):
     """
     Prepare to demo the MONA 0MQ callback chain
     First: be sure the ZMQ server code is already running (outside of BlueSky).
@@ -126,7 +118,7 @@ def demo_setup_mona_callback_as_zmq_client(host=None):
     
     EXAMPLE::
     
-        zmq_talker = demo_setup_mona_callback_as_zmq_client()
+        zmq_talker = setup_mona_callback_as_zmq_client()
         
         # ... use the queue
         
