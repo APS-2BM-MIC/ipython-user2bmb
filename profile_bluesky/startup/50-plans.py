@@ -16,25 +16,26 @@ def _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1,
     # back off to the ramp-up point
     yield from abs_set(pso, "taxi", wait=True)
 
-    # runt eh fly scan
+    # run the fly scan
     yield from abs_set(pso, "fly", wait=True)
 
     if pso.pso_fly.value == 0 & clShutter == 1:               
         yield from abs_set(shutter, "close", wait=True)
-    # Does this change the RVAL also?  Really need to change the RVAL at the same time.
-    # If offset is FIXED, then writing to VAL also writes to DVAL.
-    # TODO: verify this
-    # RVAL is not changed, only offset
+
     yield from abs_set(rotStage.set_use_switch, "Set", wait=True)
+    # ensure `.RVAL` changes (not `.OFF`)
+    foff_previous = rotStage.offset_freeze_switch.value
+    yield from abs_set(rotStage.offset_freeze_switch, "Fixed", wait=True)
     yield from abs_set(rotStage.user_setpoint, 1.0*(rotStage.position%360.0), wait=True)
+    yield from abs_set(rotStage.offset_freeze_switch, foff_previous, wait=True)
     yield from abs_set(rotStage.set_use_switch, "Use", wait=True)
 
     yield from mv(rotStage.velocity, 50.0)
-    yield from time.sleep(1)
+    yield from sleep(1)
     yield from mv(rotStage, 0.00)
     # shutter.close()
     while (det.hdf1.num_captured.value != numProjPerSweep):    
-        yield from time.sleep(1)        
+        yield from sleep(1)        
 
 # FIXME:  Following are just notes from a phone conversation 2018-02-01 with Dan Allan
 
@@ -73,7 +74,7 @@ The idea with mv is this:
 Note:
 
 ===========================   ======================================
-don"t use in plan()           correct way to write in plan()
+interactive (blocking)        re-write for BlueSky plan()
 ===========================   ======================================
 some.device.put("config")     yield from mv(some.device, "config")
 motor.move(52)                yield from mv(motor, 52)
@@ -89,9 +90,9 @@ change the underlying EPICS PV.
 # RunEngine iterates through plan, receives Msg("set", pso1, "Taxi")
 
 
-# RunEngine looks at RunEngine._command_registry and finds that "set" is mapped to RunEngine._set. It calls RunEngine._set(Msg("set", pso1, "Taxi")).
-# RunEngine._set calls pso1.set("taxi") and gets back a status object.
-# The RE stashes that status object in a local cache. Perhaps later the plan will ask the RunEngine to wait on the status object via Msg("wait", …)
+# RunEngine looks at RunEngine._command_registry and finds that ``set`` is mapped to RunEngine._set. It calls RunEngine._set(Msg("set", pso1, "Taxi")).
+# RunEngine._set calls pso1.set(``taxi``) and gets back a status object.
+# The RE stashes that status object in a local cache. Perhaps later the plan will ask the RunEngine to wait on the status object via Msg("wait", ...)
 
 
 Additionally, RunEngine._set is doing other good stuff for us, like keeping track of the fact that this device is in motion.
@@ -99,7 +100,7 @@ Additionally, RunEngine._set is doing other good stuff for us, like keeping trac
 
 
 
-Note: Remember to search all plans for `time.sleep(X)` and replace with `yield from sleep(X)`
+Note: Remember to search all plans for ``time.sleep(X)`` and replace with ``yield from sleep(X)`` (except in those situations where the call to ``time.sleep()`` is executing in a thread).
 
 
 All these 'plan stubs' (plans that don't generate runs like count or scan do) are in bluesky.plans pre-0.11.0 and bluesky.plan_stubs in v0.11.0+.

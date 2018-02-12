@@ -7,6 +7,7 @@ print(__file__)
 import time
 from ophyd import Component, Device, DeviceStatus, Signal
 from ophyd import EpicsMotor, EpicsScaler
+from ophyd.scaler import ScalerCH
 from ophyd import EpicsSignal, EpicsSignalRO, EpicsSignalWithRBV
 from ophyd import PVPositioner, PVPositionerPC
 from ophyd import AreaDetector, PcoDetectorCam
@@ -110,13 +111,12 @@ class PSO_Device(Device):
             self.busy.put(False)
             status._finished(success=True)
         
-        threading.Thread(target=run_and_delay, daemon=True).start()
+        threading.Thread(target=run_and_wait, daemon=True).start()
         return status
 
 
 class MyPcoCam(PcoDetectorCam):
     """PCO Dimax detector"""
-    array_callbacks = Component(EpicsSignal, "ArrayCallbacks")
     pco_cancel_dump = Component(EpicsSignal, "pco_cancel_dump")
     pco_live_view = Component(EpicsSignal, "pco_live_view")
     pco_trigger_mode = Component(EpicsSignal, "pco_trigger_mode")

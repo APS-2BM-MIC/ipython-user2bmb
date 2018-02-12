@@ -1,6 +1,7 @@
 print(__file__)
 
 from datetime import datetime
+import APS_BlueSky_tools
 
 # Set up default metadata
 
@@ -28,6 +29,7 @@ USERNAME = getpass.getuser() or 'synApps_xxx_user'
 RE.md['login_id'] = USERNAME + '@' + HOSTNAME
 RE.md['BLUESKY_VERSION'] = bluesky.__version__
 RE.md['OPHYD_VERSION'] = ophyd.__version__
+RE.md['APS_BlueSky_tools_VERSION'] = APS_BlueSky_tools.__version__
 
 import os
 for key, value in os.environ.items():
