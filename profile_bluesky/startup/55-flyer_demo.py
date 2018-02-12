@@ -214,14 +214,17 @@ class SpinFlyer(object):
         while self.detector.hdf1.write_file.value:
             time.sleep(0.01)    # wait for file to be written
 
-        key = self.detector.hdf1.full_file_name.name
-        full_file_name = self.detector.hdf1.full_file_name.value
-        det_time_stamp = self.detector.hdf1.time_stamp.value
         event = OrderedDict()
         event["time"] = time.time()
-        event["seq_num"] = 1
-        event["data"] = {key: full_file_name}
-        event["timestamps"] = {key: det_time_stamp}
+        # event["seq_num"] = 1
+        event["data"] = {}
+        event["timestamps"] = {}
+        for d_item in (self.detector.hdf1.full_file_name):
+            d = d_item.read()
+            for k, v in d.items():
+                event['data'][k] = v['value']
+                event['timestamps'][k] = v['timestamp']
+
         print("event: {}".format(event))
         self._data.append(event)
         # print("# data: {}".format(len(self._data)))
