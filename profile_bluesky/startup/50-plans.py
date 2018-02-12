@@ -52,20 +52,20 @@ def bluesky_plan_circa_2015():
 
 
 def example_plan1():
-    yield from abs_set(pso1, ‘Taxi’, group=’A’)
+    yield from abs_set(pso1, "Taxi", group=’A’)
     yield from wait(‘A’)
-    yield from abs_set(pso1, ‘Fly’, group=’B’)
+    yield from abs_set(pso1, "Fly", group=’B’)
     yield from wait(‘B’)
 
 
 def example_plan2():
-    yield from abs_set(pso1, ‘Taxi’, wait=True)
-    yield from abs_set(pso1, ‘Fly’, wait=True)
+    yield from abs_set(pso1, "Taxi", wait=True)
+    yield from abs_set(pso1, "Fly", wait=True)
 
 
 def example_plan3():
-    yield from mv(pso1, ‘Taxi’)  # waits by default
-    yield from mv(pso1, ‘Fly’)
+    yield from mv(pso1, "Taxi")  # waits by default
+    yield from mv(pso1, "Fly")
 
 """
 The idea with mv is this:
