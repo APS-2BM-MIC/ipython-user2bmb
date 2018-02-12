@@ -111,7 +111,7 @@ class PSO_Device(Device):
             self.busy.put(False)
             status._finished(success=True)
         
-        threading.Thread(target=run_and_delay, daemon=True).start()
+        threading.Thread(target=run_and_wait, daemon=True).start()
         return status
 
 
