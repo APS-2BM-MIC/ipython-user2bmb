@@ -30,6 +30,7 @@ RE.md['login_id'] = USERNAME + '@' + HOSTNAME
 RE.md['BLUESKY_VERSION'] = bluesky.__version__
 RE.md['OPHYD_VERSION'] = ophyd.__version__
 RE.md['APS_BlueSky_tools_VERSION'] = APS_BlueSky_tools.__version__
+RE.md['SESSION_STARTED'] = datetime.isoformat(datetime.now(), " ")
 
 import os
 for key, value in os.environ.items():
