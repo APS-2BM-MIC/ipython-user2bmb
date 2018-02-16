@@ -63,6 +63,17 @@ class PSO_Device(Device):
     pso_fly = Component(EpicsSignal, "fly.VAL", put_complete=True)
     busy = Signal(value=False, name="busy")
     
+#     def __init__(self, motor, detector):
+#         self.motor = motor
+#         self.detector = detector
+# 
+#         self.return_position = self.motor.position
+#         self.poll_delay_s = 0.05
+#         self.num_spins = 1
+# 
+#         self._completion_status = None
+#         self._data = deque()
+    
     def taxi(self):
         """
         request move to taxi position, interactive use
@@ -86,9 +97,11 @@ class PSO_Device(Device):
         self.pso_fly.put("Fly")
 
     def set(self, value):       # interface for BlueSky plans
-        """value is either Taxi or Fly"""
-        if str(value).lower() not in ("fly", "taxi"):
-            msg = "value should be either Taxi or Fly."
+        """value is either Taxi, Fly, or Return"""
+#         allowed = "Taxi Fly Return".split()
+        allowed = "Taxi Fly".split()
+        if str(value).lower() not in list(map(str.lower, allowed)):
+            msg = "value should be one of: " + " | ".join(allowed)
             msg + " received " + str(value)
             raise ValueError(msg)
 
@@ -103,6 +116,8 @@ class PSO_Device(Device):
                 self.taxi()
             elif str(value).lower() == "fly":
                 self.fly()
+#             elif str(value).lower() == "return":
+#                 self.motor.move(self.return_position)
 
         def run_and_wait():
             """handle the ``action()`` in a thread"""
@@ -113,6 +128,82 @@ class PSO_Device(Device):
         
         threading.Thread(target=run_and_wait, daemon=True).start()
         return status
+
+#     def kickoff(self):
+#         """
+#         Start a flyer
+#         """
+#         if self._completion_status is not None:
+#             raise RuntimeError("Already kicked off.")
+#         self._data = deque()
+# 
+#         self._future = self.loop.run_in_executor(None, self._spin_sequence)
+#         self._completion_status = DeviceStatus(device=self)
+#         return self._completion_status
+# 
+#     def complete(self):
+#         """
+#         Wait for flying to be complete
+#         """
+#         if self._completion_status is None:
+#             raise RuntimeError("No collection in progress")
+#         
+#         while self.motor.moving:
+#             time.sleep(self.poll_delay_s)
+#         
+#         return self._completion_status
+#     
+#     def collect(self):
+#         """
+#         Retrieve data from the flyer as *proto-events*
+#         """
+#         if self._completion_status is None or not self._completion_status.done:
+#             raise RuntimeError("No reading until done!")
+#         self._completion_status = None
+# 
+#         yield from self._data
+# 
+#     def _spin_sequence(self):        # TODO: 2018-02-15: test this!
+#         """
+#         spin flyer, called from kickoff() in asyncio thread
+#         """
+#         self.return_position = self.motor.position
+#         
+#         for spin_num in range(self.num_spins):
+#             self.taxi()
+#     
+#             self.pre_fly()
+#             self.fly()
+#             det_post_fly(self.detector)
+# 
+#             while self.detector.hdf1.write_file.value:
+#                 time.sleep(0.01)    # wait for file to be written
+#     
+#             event = OrderedDict()
+#             event["time"] = time.time()
+#             event["seq_num"] = spin_num + 1
+#             event["data"] = {}
+#             event["timestamps"] = {}
+#             # TODO: generalize this list
+#             for d_item in (self.detector.hdf1.full_file_name, ):
+#                 d = d_item.read()
+#                 for k, v in d.items():
+#                     event['data'][k] = v['value']
+#                     event['timestamps'][k] = v['timestamp']
+#     
+#             self._data.append(event)
+#             # print("# data: {}".format(len(self._data)))
+# 
+#         self.set("Return")
+#         self._completion_status._finished(success=True)
+#     
+#     def pre_fly(self):
+#         """ """
+#         pass        # TODO: implement
+#     
+#     def post_fly(self):
+#         """ """
+#         pass        # TODO: implement
 
 
 class MyPcoCam(PcoDetectorCam):
