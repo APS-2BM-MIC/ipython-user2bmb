@@ -47,7 +47,7 @@ def _our_tomo_plan(
         camScanSpeed = string_by_index("Normal Fast Fastest", scanMode)
         if camScanSpeed is None:
             msg = "Wrong camera scan mode!"
-            return ValueError(msg)
+            raise ValueError(msg)
 
         yield from _plan_initEdge(samInPos=samInPos, samStage=samStage, rotStage=rotStage)
 
