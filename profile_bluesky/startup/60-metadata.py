@@ -5,8 +5,10 @@ import APS_BlueSky_tools
 
 # Set up default metadata
 
+prop_num = EpicsSignal("2bmS1:ProposalNumber", name="prop_num", string=True)
+
 RE.md['beamline_id'] = '2-BM tomography'
-RE.md['proposal_id'] = None
+RE.md['proposal_id'] = str(prop_num.value)
 RE.md['pid'] = os.getpid()
 RE.md['USER2BMB_ROOT_DIR'] = USER2BMB_ROOT_DIR
 

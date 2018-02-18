@@ -8,15 +8,6 @@ from APS_BlueSky_tools.zmq_pair import ZMQ_Pair, mona_zmq_sender
 import bluesky.plan_stubs as bps
 
 
-doc_collector = APS_BlueSky_tools.callbacks.DocumentCollectorCallback()
-callback_db['doc_collector'] = RE.subscribe(doc_collector.receiver)
-
-specwriter = APS_BlueSky_tools.filewriters.SpecWriterCallback()
-specwriter.newfile(os.path.join("/tmp", specwriter.spec_filename))
-callback_db['specwriter'] = RE.subscribe(specwriter.receiver)
-print("SPEC data file:", specwriter.spec_filename)
-
-
 class MonaCallback0MQ(object):
     """
     My BlueSky 0MQ talker to send *all* documents emitted

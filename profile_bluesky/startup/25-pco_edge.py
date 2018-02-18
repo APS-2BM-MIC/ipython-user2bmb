@@ -19,17 +19,19 @@ class MyEdgeHDF5Plugin(MyHDF5Plugin):
 
 class MyPcoEdgeDetector(SingleTrigger, AreaDetector):
     """PCO edge detector as used by 2-BM tomography"""
-    # TODO: configure the "root" and "write_path_template" attributes
     
     cam = Component(MyPcoEdgeCam, "cam1:")
     image = Component(ImagePlugin, "image1:")
     hdf1 = Component(
         MyEdgeHDF5Plugin, 
         "HDF1:", 
-        root="/",                   # root path for HDF5 files (for databroker filestore)
-        write_path_template="/tmp", # path for HDF5 files (for EPICS area detector)
+        root="S:/",                   # root path for HDF5 files (for databroker filestore)
+        write_path_template="S:/data/2018_02/Doga/", # exported from //grayhound/S drive
+        # reg=db.reg,
         )
 
+# caputRecorderExecute.adl P=2bmb: L=2bmb:
+# caputRecorderGlobal.adl P=2bmb: L=2bmb:
 
 try:
     pco_edge = MyPcoEdgeDetector("PCOIOC3:", name="pco_edge")
