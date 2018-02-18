@@ -162,6 +162,8 @@ def _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1,
     yield from abs_set(shutter, "open", wait=True)
     yield from bps.abs_set(det.cam.frame_type_VAL, 0, wait=True) # 0: Normal
     yield from mv(samStage, samInPos, rotStage.velocity, 50.0)
+    # TODO: or rotStage.stage_sigs["velocity"] = 50.0
+    yield from bps.sleep(1)     # wait for velocity command to reach controller
     yield from mv(rotStage, 0.00)
     
     # back off to the ramp-up point
@@ -171,7 +173,8 @@ def _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1,
     
     slewSpeed = float(cpr_slew_speed.value)
     yield from mv(rotStage.velocity, slewSpeed)
-    # TODO: stage the velocity?
+    # TODO: or  rotStage.stage_sigs["velocity"] = slewSpeed
+    yield from bps.sleep(1)     # wait for velocity command to reach controller
     print("rotStage velocity = {}".format(rotStage.velocity.value))
     
     # FIXME: somehow, fly is not waiting for complete and motion happens with VELO=50
@@ -195,7 +198,8 @@ def _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1,
 
     print("after fly, returning rotStage to standard")
     yield from mv(rotStage.velocity, 50.0)
-    yield from bps.sleep(1)
+    # TODO: rotStage.stage_sigs["velocity"] = 50.0
+    yield from bps.sleep(1)     # wait for velocity command to reach controller
     yield from mv(rotStage, 0.00)
     # shutter.close()
     print("Waiting for HDF5 file to finish writing")
@@ -211,6 +215,8 @@ def _plan_setPSO(slewSpeed, scanDelta, acclTime, angStart=0, angEnd=180, pso=Non
     yield from mv(pso.start_pos, angStart)
     yield from mv(pso.end_pos, angEnd)
     yield from mv(rotStage.velocity, slewSpeed)
+    # TODO:  rotStage.stage_sigs["velocity"] = slewSpeed
+    # TODO:  rotStage.stage_sigs["acceleration"] = acclTime
     yield from mv(pso.slew_speed, slewSpeed)
     yield from mv(rotStage.acceleration, acclTime)
     yield from mv(pso.scan_delta, scanDelta)
@@ -306,6 +312,8 @@ def _plan_initEdge(samInPos=0, samStage=None, rotStage=None):
 
     yield from mv(rotStage.velocity, 30)
     yield from mv(rotStage.acceleration, 3)
+    # TODO: or  rotStage.stage_sigs["velocity"] = 30
+    # TODO: or  rotStage.stage_sigs["acceleration"] = 3
     yield from mv(rotStage, 0)
     yield from mv(samStage, samInPos)
     # yield from mv(tomo_shutter, "close")
