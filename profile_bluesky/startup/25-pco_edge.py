@@ -52,11 +52,12 @@ class MyPcoEdgeDetector(SingleTrigger, AreaDetector):
 try:
     pco_edge = MyPcoEdgeDetector("PCOIOC3:", name="pco_edge")
     pco_edge.hdf1.stage_sigs["file_template_VAL"] = "%s%s_%4.4d.hdf"
-    pco_edge.cam.stage_sigs["num_images_VAL"] = 1
+    pco_edge.cam.stage_sigs["num_images"] = 1
     # FIXME: work around ophyd unstage() problem inside RE()
-    del pco_edge.hdf1.stage_sigs["capture"]
-    del pco_edge.hdf1.stage_sigs["file_template"]
+    for key in "capture file_template file_number".split():
+        if key in pco_edge.hdf1.stage_sigs:
+            del pco_edge.hdf1.stage_sigs[key]
     #del pco_edge.cam.stage_sigs["num_images"]
     det = pco_edge  # developer use
-except TimeoutError:
-    print("Could not connect to PCOIOC3:pco_edge - is the IOC off?")
+except TimeoutError as exc:
+    print("Problem connecting to PCOIOC3:pco_edge - is the IOC off?\n" + str(exc))
