@@ -2,8 +2,10 @@ print(__file__)
 
 # Bluesky plans (scans)
 from collections import OrderedDict
+import bluesky.preprocessors as bpp
 
-def _our_tomo_plan(
+
+def _mona_tomo(
         exposureTime=0.2, 
         slewSpeed=0.5, 
         angStart=0, angEnd = 180,
@@ -16,7 +18,14 @@ def _our_tomo_plan(
         flatPerScan = 1, darkPerScan = 1,
         accl = 1, 
         shutterMode=0, scanMode=0, 
-        timeFile=0, clShutter=1):
+        timeFile=0, clShutter=1,    
+        ):
+    """
+    
+    to scan this plan, use the wrapper plan below::
+    
+        RE(mona_tomo(...))
+    """
 
     cam = 'edge'
     det = pco_edge
@@ -58,7 +67,6 @@ def _our_tomo_plan(
         camShutterMode = "Rolling"
         samInInitPos = samInPos  
     #-------------------------------------------------------------------
-
 
     filepath_top = cpr_filepath.value
            
@@ -174,6 +182,38 @@ def _our_tomo_plan(
     yield from mv(shutter, "close")
     # yield from mv(tomo_shutter, "close")
     print("sample scan is done!")
+
+
+def mona_tomo(md={}, **kwargs):
+    """use this plan to run a mona_tomo scan"""
+
+    params = dict(
+        exposureTime=0.2, 
+        slewSpeed=0.5, 
+        angStart=0, angEnd = 180,
+        numProjPerSweep=1500,
+        samInPos=0, samOutDist=7,
+        roiSizeX = 2560, roiSizeY = 2160,
+        posStep = 0, 
+        posNum = 1, 
+        delay = 0, 
+        flatPerScan = 1, darkPerScan = 1,
+        accl = 1, 
+        shutterMode=0, scanMode=0, 
+        timeFile=0, clShutter=1,    
+    )
+    # cautious update of params dictionary
+    for k, v in kwargs.items():
+        if k in params:
+            params[k] = v
+
+    # metadata includes all params and other metadata
+    _md = dict(**params)
+    _md.update(**md)
+    _md["project"] = "mona"
+    _md["datetime_plan_started"] = str(datetime.now())
+
+    return bpp.run_decorator(md = _md)(_mona_tomo)(**params)
 
 
 def _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, pso=None, rotStage=None):

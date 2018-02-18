@@ -1,6 +1,5 @@
 print(__file__)
 
-from datetime import datetime
 import APS_BlueSky_tools
 
 # Set up default metadata

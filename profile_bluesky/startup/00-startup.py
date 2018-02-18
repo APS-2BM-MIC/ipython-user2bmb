@@ -26,6 +26,7 @@ import bluesky.plans as bp
 from time import sleep
 import numpy as np
 import bluesky.magics
+from datetime import datetime
 
 
 def append_wa_motor_list(*motorlist):
