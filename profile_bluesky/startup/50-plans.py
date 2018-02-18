@@ -70,7 +70,7 @@ def _our_tomo_plan(
     acclTime = 1.0*slewSpeed/accl
     frate = int(1.0*numProjPerSweep/(1.0*(angEnd-angStart)/slewSpeed) + 5)
 
-    yield from bps.abs_set(det.hdf1.file_number, cpr_proj_num.value)
+    yield from bps.mv(det.hdf1.file_number, cpr_proj_num.value)
             
     #    yield from mv(shutter, "open")
                     
@@ -260,7 +260,7 @@ def _plan_edgeTest(camScanSpeed,camShutterMode,roiSizeX=2560,roiSizeY=2160,pso=N
     yield from mv(det.cam.size.size_y, roiSizeY)
     yield from mv(det.cam.pco_trigger_mode, "Auto")
     # print("_plan_edgeTest('Acquire')")
-    yield from bps.abs_set(det.cam.acquire, "Acquire")
+    yield from bps.mv(det.cam.acquire, "Acquire")
     print("camera passes test!")
 
 
@@ -272,7 +272,7 @@ def _plan_edgeSet(filepath, filename, numImage, exposureTime, frate, pso=None):
     det = pco_edge
 
     # do this early, BEFORE stage() - make_filename() needs this
-    yield from bps.abs_set(det.hdf1.file_path, filepath)
+    yield from bps.mv(det.hdf1.file_path, filepath)
     
     det.hdf1.stage_sigs["num_capture"] = numImage
     #det.hdf1.stage_sigs["file_path"] = filepath
@@ -318,7 +318,7 @@ def _plan_initEdge(samInPos=0, samStage=None, rotStage=None):
     if hasattr(det, "hdf1"):
         yield from mv(det.hdf1.enable, "Enable")
         yield from mv(det.hdf1.capture_VAL, "Done")
-        #yield from abs_set(det.hdf1.xml_layout_file, "DynaMCTHDFLayout.xml")
+        #yield from mv(det.hdf1.xml_layout_file, "DynaMCTHDFLayout.xml")
         #yield from epics.caput(pco_edge.hdf1.xml_layout_file.pvname, "DynaMCTHDFLayout.xml"))
         # Why? FIXME:  This is RO!  yield from mv(det.hdf1.num_captured, 0)
     yield from mv(det.image.enable, "Enable")

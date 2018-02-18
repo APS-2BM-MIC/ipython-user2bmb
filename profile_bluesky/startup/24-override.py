@@ -100,13 +100,13 @@ class FileStoreHDF5IterativeWrite(FileStoreHDF5, FileStoreIterativeWrite):
 
 
 class MyHDF5Plugin(HDF5Plugin, FileStoreHDF5IterativeWrite):
-#class MyHDF5Plugin(HDF5Plugin):
     """adapt HDF5 plugin for AD 2.5+"""
     
     file_number_sync = None
     capture_VAL = ADComponent(EpicsSignal, "Capture")
     file_template_VAL = ADComponent(EpicsSignal, "FileTemplate", string=True)
     num_capture = ADComponent(EpicsSignalWithRBV, "NumCapture")
+    file_number = ADComponent(EpicsSignal, "FileNumber")
 
     # FIXME:  .put() works OK but .value returns numpy object metadata
     # In [48]: pco_edge.hdf1.xml_layout_file.get()
