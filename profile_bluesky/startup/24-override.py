@@ -104,16 +104,17 @@ class MyHDF5Plugin(HDF5Plugin, FileStoreHDF5IterativeWrite):
     """adapt HDF5 plugin for AD 2.5+"""
     
     file_number_sync = None
-    capture_VAL = Component(EpicsSignal, "Capture")
-    file_template_VAL = Component(EpicsSignal, "FileTemplate", string=True)
+    capture_VAL = ADComponent(EpicsSignal, "Capture")
+    file_template_VAL = ADComponent(EpicsSignal, "FileTemplate", string=True)
+    num_capture = ADComponent(EpicsSignalWithRBV, "NumCapture")
 
     # FIXME:  .put() works OK but .value returns numpy object metadata
     # In [48]: pco_edge.hdf1.xml_layout_file.get()
     # Out[48]: '<array size=21, type=time_char>'
-    # FIXME: xml_layout_file = Component(EpicsSignalWithRBV, "XMLFileName", string=True)
-    xml_layout_file = Component(EpicsSignal, "XMLFileName", string=True)    # use as WRITE-ONLY for now due to error above
-    xml_layout_valid = Component(EpicsSignalRO, "XMLValid_RBV")
-    xml_layout_error_message = Component(EpicsSignalRO, "XMLErrorMsg_RBV", string=True)
+    # FIXME: xml_layout_file = ADComponent(EpicsSignalWithRBV, "XMLFileName", string=True)
+    xml_layout_file = ADComponent(EpicsSignal, "XMLFileName", string=True)    # use as WRITE-ONLY for now due to error above
+    xml_layout_valid = ADComponent(EpicsSignalRO, "XMLValid_RBV")
+    xml_layout_error_message = ADComponent(EpicsSignalRO, "XMLErrorMsg_RBV", string=True)
     
     def get_frames_per_point(self):
         return self.parent.cam.num_images.get()

@@ -261,9 +261,9 @@ class MyPcoDetector(SingleTrigger, AreaDetector):
     """PCO detectors as used by 2-BM tomography"""
     # TODO: configure the "root" and "write_path_template" attributes
     
-    cam = Component(MyPcoCam, "cam1:")
-    image = Component(ImagePlugin, "image1:")
-    hdf1 = Component(
+    cam = ADComponent(MyPcoCam, "cam1:")
+    image = ADComponent(ImagePlugin, "image1:")
+    hdf1 = ADComponent(
         MyHDF5Plugin, 
         "HDF1:", 
         root="/",                   # root path for HDF5 files (for databroker filestore)
