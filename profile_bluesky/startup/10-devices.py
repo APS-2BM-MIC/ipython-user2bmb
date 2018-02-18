@@ -13,6 +13,7 @@ from ophyd import PVPositioner, PVPositionerPC
 from ophyd import AreaDetector, PcoDetectorCam
 from ophyd import SingleTrigger, ImagePlugin, HDF5Plugin
 from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
+from ophyd.areadetector.plugins import PluginBase
 
 # TODO: refactor as bps.mv, bps.mvr, ...
 from bluesky.plan_stubs import mv, mvr, abs_set, wait
@@ -207,6 +208,14 @@ class PSO_Device(Device):
 #     def post_fly(self):
 #         """ """
 #         pass        # TODO: implement
+
+
+class MyEdgeDescrambler(PluginBase):
+    """PCO Edge detector descrambler"""
+    _default_suffix = 'EDGEDSC:'
+    _suffix_re = 'descrambler\d:'
+    _html_docs = ['unconfigured.html']
+    _plugin_type = 'NDPluginFile'
 
 
 class MyPcoCam(PcoDetectorCam):

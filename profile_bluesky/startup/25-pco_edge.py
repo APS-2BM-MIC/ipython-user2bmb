@@ -22,12 +22,13 @@ class MyPcoEdgeDetector(SingleTrigger, AreaDetector):
     
     cam = Component(MyPcoEdgeCam, "cam1:")
     image = Component(ImagePlugin, "image1:")
+    descrambler1 = Component(MyEdgeDescrambler, "EDGEDSC:")
     hdf1 = Component(
         MyEdgeHDF5Plugin, 
         "HDF1:", 
         root="S:/",                   # root path for HDF5 files (for databroker filestore)
         write_path_template="S:/data/2018_02/Doga/", # exported from //grayhound/S drive
-        # reg=db.reg,
+        reg=db.reg,
         )
 
 # caputRecorderExecute.adl P=2bmb: L=2bmb:
