@@ -70,7 +70,7 @@ def _our_tomo_plan(
     acclTime = 1.0*slewSpeed/accl
     frate = int(1.0*numProjPerSweep/(1.0*(angEnd-angStart)/slewSpeed) + 5)
 
-    yield from bps.mv(det.hdf1.file_number, cpr_proj_num.value)
+    yield from bps.mv(det.hdf1.file_number, int(cpr_proj_num.value))
             
     #    yield from mv(shutter, "open")
                     
@@ -116,6 +116,7 @@ def _our_tomo_plan(
         fp += 'USArm{0:.3f}_'.format(am30.position)
         fp += 'monoY{0:.3f}_'.format(am26.position)
         fp += station
+        fp += "/"
         filepath = os.path.join(filepath_top, fp)
 
         # remember the original stage_sigs
