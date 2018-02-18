@@ -235,9 +235,11 @@ class MyPcoCam(PcoDetectorCam):
     pco_ready2acquire = ADComponent(EpicsSignal, "pco_ready2acquire")
     pco_set_frame_rate = ADComponent(EpicsSignal, "pco_set_frame_rate")
     
-    # FIXME: ophyd has problem with tring to unstage the RBV value inside RE()
+    # FIXME: ophyd has problem with trying to unstage the RBV value inside RE()
     image_mode = ADComponent(EpicsSignal, "ImageMode")
-    num_images_VAL = ADComponent(EpicsSignal, "NumImages")
+    num_images = ADComponent(EpicsSignal, "NumImages")
+    acquire_time = ADComponent(EpicsSignal, "AcquireTime")
+    frame_type = ADComponent(EpicsSignal, "FrameType")
     
 
 class MyHDF5Plugin(HDF5Plugin, FileStoreHDF5IterativeWrite):
