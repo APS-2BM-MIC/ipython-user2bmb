@@ -5,6 +5,8 @@ print(__file__)
 
 
 import time
+import threading
+
 from ophyd import Component, Device, DeviceStatus, Signal
 from ophyd import EpicsMotor, EpicsScaler
 from ophyd.scaler import ScalerCH
@@ -261,6 +263,7 @@ class MyPcoDetector(SingleTrigger, AreaDetector):
         "HDF1:", 
         root="/",                   # root path for HDF5 files (for databroker filestore)
         write_path_template="/tmp", # path for HDF5 files (for EPICS area detector)
+        reg=db.reg,
         )
 
 

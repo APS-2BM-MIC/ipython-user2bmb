@@ -2,11 +2,14 @@ print(__file__)
 
 """support PCO Edge detector"""
 
+from ophyd.utils import set_and_wait
+
 
 class MyPcoEdgeCam(MyPcoCam):
     """adapt CAM plugin for PCO Edge detector"""
     
     pco_global_shutter = Component(EpicsSignal, "pco_global_shutter")
+    frame_type_VAL = Component(EpicsSignal, "FrameType")
 
 
 class MyEdgeHDF5Plugin(MyHDF5Plugin):
@@ -16,6 +19,13 @@ class MyEdgeHDF5Plugin(MyHDF5Plugin):
     # NDFileCreateDir
     create_directory = Component(EpicsSignal, "CreateDirectory")
 
+    def make_filename(self):
+        """make the file name the way we want it"""
+        filename = cpr_filename.value
+        # write_path = cpr_filepath.value
+        write_path = self.file_path.value
+        read_path = "/mnt/WinS/" + write_path.split(":")[-1].replace("\\", "/")
+        return filename, read_path, write_path
 
 class MyPcoEdgeDetector(SingleTrigger, AreaDetector):
     """PCO edge detector as used by 2-BM tomography"""
@@ -26,15 +36,17 @@ class MyPcoEdgeDetector(SingleTrigger, AreaDetector):
     hdf1 = Component(
         MyEdgeHDF5Plugin, 
         "HDF1:", 
-        root="S:/",                   # root path for HDF5 files (for databroker filestore)
-        write_path_template="S:/data/2018_02/Doga/", # exported from //grayhound/S drive
+        root="/mnt/WinS",                   # root path for HDF5 files (for databroker filestore)
+        write_path_template="S:/data/2018_02/Doga/test/", # exported from //grayhound/S drive
         reg=db.reg,
         )
 
 # caputRecorderExecute.adl P=2bmb: L=2bmb:
 # caputRecorderGlobal.adl P=2bmb: L=2bmb:
 
+
 try:
     pco_edge = MyPcoEdgeDetector("PCOIOC3:", name="pco_edge")
+    pco_edge.hdf1.stage_sigs["file_template"] = "%s%s_%4.4d.h5"
 except TimeoutError:
     print("Could not connect to PCOIOC3:pco_edge - is the IOC off?")

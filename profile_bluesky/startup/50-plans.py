@@ -1,6 +1,7 @@
 print(__file__)
 
 # Bluesky plans (scans)
+from collections import OrderedDict
 
 def _our_tomo_plan(
         exposureTime=0.2, 
@@ -123,10 +124,22 @@ def _our_tomo_plan(
 
     yield from mv(shutter, "open")
     # yield from mv(tomo_shutter, "close")
-    yield from bps.sleep(3)                                                            
+    yield from bps.sleep(3)      
+                                                          
+    # remember the original stage_sigs
+    stage_sigs = OrderedDict()
+    stage_sigs["hdf1"] = det.hdf1.stage_sigs
+    stage_sigs["cam"] = det.cam.stage_sigs
+
     yield from _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter, pso=pso, rotStage=rotStage)
-    yield from mv(det.cam.acquire, "Done")
+    #yield from mv(det.cam.acquire, "Done")
+    yield from bps.unstage(det)
     print("scan at position #",ii+1," is done!")
+    
+    # reset the original stage_sigs
+    det.hdf1.stage_sigs = stage_sigs["hdf1"]
+    det.cam.stage_sigs = stage_sigs["cam"]
+
 
     samOutPos = samInPos + samOutDist
     
@@ -147,27 +160,40 @@ def _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1,
     det = pco_edge
 
     yield from abs_set(shutter, "open", wait=True)
-    yield from abs_set(det.cam.frame_type, "Normal")
+    yield from bps.abs_set(det.cam.frame_type_VAL, 0, wait=True) # 0: Normal
     yield from mv(samStage, samInPos, rotStage.velocity, 50.0)
     yield from mv(rotStage, 0.00)
     
     # back off to the ramp-up point
+    print("before taxi")
     yield from abs_set(pso, "taxi", wait=True)
+    print("after taxi")
+    
+    slewSpeed = float(cpr_slew_speed.value)
+    yield from mv(rotStage.velocity, slewSpeed)
+    # TODO: stage the velocity?
+    print("rotStage velocity = {}".format(rotStage.velocity.value))
+    
+    # FIXME: somehow, fly is not waiting for complete and motion happens with VELO=50
 
     # run the fly scan
+    print("before fly")
     yield from abs_set(pso, "fly", wait=True)
+    print("after fly")
 
     if pso.pso_fly.value == 0 & clShutter == 1:               
         yield from abs_set(shutter, "close", wait=True)
 
-    yield from abs_set(rotStage.set_use_switch, "Set", wait=True)
-    # ensure `.RVAL` changes (not `.OFF`)
-    foff_previous = rotStage.offset_freeze_switch.value
-    yield from abs_set(rotStage.offset_freeze_switch, "Fixed", wait=True)
-    yield from abs_set(rotStage.user_setpoint, 1.0*(rotStage.position%360.0), wait=True)
-    yield from abs_set(rotStage.offset_freeze_switch, foff_previous, wait=True)
-    yield from abs_set(rotStage.set_use_switch, "Use", wait=True)
+    if not (0 < rotStage.position < 360.0):
+        yield from abs_set(rotStage.set_use_switch, "Set", wait=True)
+        # ensure `.RVAL` changes (not `.OFF`)
+        foff_previous = rotStage.offset_freeze_switch.value
+        yield from abs_set(rotStage.offset_freeze_switch, "Frozen", wait=True)
+        yield from abs_set(rotStage.user_setpoint, 1.0*(rotStage.position%360.0), wait=True)
+        yield from abs_set(rotStage.offset_freeze_switch, foff_previous, wait=True)
+        yield from abs_set(rotStage.set_use_switch, "Use", wait=True)
 
+    print("after fly, returning rotStage to standard")
     yield from mv(rotStage.velocity, 50.0)
     yield from bps.sleep(1)
     yield from mv(rotStage, 0.00)
@@ -212,27 +238,32 @@ def _plan_edgeTest(camScanSpeed,camShutterMode,roiSizeX=2560,roiSizeY=2160,pso=N
 def _plan_edgeSet(filepath, filename, numImage, exposureTime, frate, pso=None):
     pso = pso or pso1    
     det = pco_edge
-
-    yield from mv(det.cam.pco_is_frame_rate_mode, "DelayExp")
-    yield from mv(det.cam.acquire_period, frate+1)     # TODO: why twice?
-    yield from mv(det.cam.pco_set_frame_rate, frate)
-    yield from mv(det.hdf1.auto_increment, "Yes")
-    yield from mv(det.hdf1.num_capture, numImage)
-    yield from mv(det.hdf1.num_capture, numImage)
-    # FIXME: yield from mv(det.hdf1.num_captured, 0)
+    
+    # do this early
     yield from bps.abs_set(det.hdf1.file_path, filepath)
-    yield from bps.abs_set(det.hdf1.file_name, filename)
-    yield from bps.abs_set(det.hdf1.file_template, "%s%s_%4.4d.hdf")
-    yield from bps.abs_set(det.hdf1.auto_save, "Yes")
-    yield from bps.abs_set(det.hdf1.file_write_mode, "Stream")
-    yield from abs_set(det.hdf1.capture, "Capture")
-    yield from mv(det.cam.num_images, numImage)
-    yield from mv(det.cam.image_mode, "Multiple")
-    yield from mv(det.cam.acquire_time, exposureTime)
-    yield from mv(det.cam.pco_trigger_mode, "Soft/Ext")
-    yield from mv(det.cam.pco_ready2acquire, 0)
+
+    det.hdf1.stage_sigs["num_capture"] = numImage
+    #det.hdf1.stage_sigs["file_path"] = filepath
+    det.hdf1.stage_sigs["file_name"] = filename
+    det.hdf1.stage_sigs["capture_VAL"] = "Capture"
+    #det.hdf1.stage_sigs["xml_layout_file"] = "DynaMCTHDFLayout.xml"
+    det.cam.stage_sigs["pco_is_frame_rate_mode"] = "DelayExp"
+    det.cam.stage_sigs["acquire_period"] = frate+1
+    det.cam.stage_sigs["pco_set_frame_rate"] = frate
+    det.cam.stage_sigs["num_images"] = numImage
+    det.cam.stage_sigs["image_mode"] = "Multiple"
+    det.cam.stage_sigs["acquire_time"] = exposureTime
+    det.cam.stage_sigs["pco_trigger_mode"] = "Soft/Ext"
+    det.cam.stage_sigs["pco_ready2acquire"] = 0
+    for oo in (det.cam, det.hdf1):
+        for k, v in oo.stage_sigs.items():
+            print(k, v)
+    
+    # FIXME: yield from mv(det.hdf1.num_captured, 0)
     print("_plan_edgeSet('Acquire')")
-    yield from bps.abs_set(det.cam.acquire, "Acquire", wait=True)
+    yield from bps.stage(det)
+    yield from bps.trigger(det)
+    #yield from bps.abs_set(det.cam.acquire, "Acquire", wait=True)
     print("_plan_edgeSet(): acquire is set")
 
 
@@ -261,8 +292,8 @@ def _plan_initEdge(samInPos=0, samStage=None, rotStage=None):
     yield from mv(det.cam.size.size_y, 1400)
     if hasattr(det, "hdf1"):
         yield from mv(det.hdf1.enable, "Enable")
-        yield from mv(det.hdf1.capture, "Done")
-        yield from abs_set(det.hdf1.xml_layout_file, "DynaMCTHDFLayout.xml")
+        yield from mv(det.hdf1.capture_VAL, "Done")
+        #yield from abs_set(det.hdf1.xml_layout_file, "DynaMCTHDFLayout.xml")
         #yield from epics.caput(pco_edge.hdf1.xml_layout_file.pvname, "DynaMCTHDFLayout.xml"))
         # FIXME: yield from mv(det.hdf1.num_captured, 0)
     yield from mv(det.image.enable, "Enable")

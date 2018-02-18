@@ -38,6 +38,7 @@ cpr_proj_num        = EpicsSignal("2bmb:caputRecorderGbl_10", name="cpr_proj_num
 cpr_filepath        = EpicsSignal("2bmb:caputRecorderGbl_filepath", name="cpr_filepath", string=True)
 cpr_filename        = EpicsSignal("2bmb:caputRecorderGbl_filename", name="cpr_filename", string=True)
 
+cpr_slew_speed  = EpicsSignal("2bmb:caputRecorderArg2Value.VAL",  name="cpr_slew_speed")
 cpr_arg9  = EpicsSignal("2bmb:caputRecorderArg9Value.VAL",  name="cpr_arg9")
 cpr_arg13 = EpicsSignal("2bmb:caputRecorderArg13Value.VAL", name="cpr_arg13")
 cpr_arg14 = EpicsSignal("2bmb:caputRecorderArg14Value.VAL", name="cpr_arg14")
