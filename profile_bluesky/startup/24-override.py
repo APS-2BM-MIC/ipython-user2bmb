@@ -105,6 +105,7 @@ class MyHDF5Plugin(HDF5Plugin, FileStoreHDF5IterativeWrite):
     
     file_number_sync = None
     capture_VAL = Component(EpicsSignal, "Capture")
+    file_template_VAL = Component(EpicsSignal, "FileTemplate", string=True)
 
     # FIXME:  .put() works OK but .value returns numpy object metadata
     # In [48]: pco_edge.hdf1.xml_layout_file.get()

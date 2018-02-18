@@ -9,6 +9,10 @@ class MyPcoEdgeCam(MyPcoCam):
     """adapt CAM plugin for PCO Edge detector"""
     
     pco_global_shutter = Component(EpicsSignal, "pco_global_shutter")
+    # TODO: frame_type should allow strings
+    # pco_edge.cam.frame_type.enum_strs
+    # Out[15]: ('Normal', 'Background', 'FlatField', 'DblCorrelation')
+
     frame_type_VAL = Component(EpicsSignal, "FrameType")
 
 
@@ -47,6 +51,12 @@ class MyPcoEdgeDetector(SingleTrigger, AreaDetector):
 
 try:
     pco_edge = MyPcoEdgeDetector("PCOIOC3:", name="pco_edge")
-    pco_edge.hdf1.stage_sigs["file_template"] = "%s%s_%4.4d.h5"
+    pco_edge.hdf1.stage_sigs["file_template_VAL"] = "%s%s_%4.4d.hdf"
+    pco_edge.cam.stage_sigs["num_images_VAL"] = 1
+    # FIXME: work around ophyd unstage() problem inside RE()
+    del pco_edge.hdf1.stage_sigs["capture"]
+    del pco_edge.hdf1.stage_sigs["file_template"]
+    #del pco_edge.cam.stage_sigs["num_images"]
+    det = pco_edge  # developer use
 except TimeoutError:
     print("Could not connect to PCOIOC3:pco_edge - is the IOC off?")

@@ -14,6 +14,7 @@ from ophyd import EpicsSignal, EpicsSignalRO, EpicsSignalWithRBV
 from ophyd import PVPositioner, PVPositionerPC
 from ophyd import AreaDetector, PcoDetectorCam
 from ophyd import SingleTrigger, ImagePlugin, HDF5Plugin
+from ophyd import ADComponent
 from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
 from ophyd.areadetector.plugins import PluginBase
 
@@ -222,17 +223,21 @@ class MyEdgeDescrambler(PluginBase):
 
 class MyPcoCam(PcoDetectorCam):
     """PCO Dimax detector"""
-    pco_cancel_dump = Component(EpicsSignal, "pco_cancel_dump")
-    pco_live_view = Component(EpicsSignal, "pco_live_view")
-    pco_trigger_mode = Component(EpicsSignal, "pco_trigger_mode")
-    pco_edge_fastscan = Component(EpicsSignal, "pco_edge_fastscan")
-    pco_is_frame_rate_mode = Component(EpicsSignal, "pco_is_frame_rate_mode")
-    pco_imgs2dump = Component(EpicsSignalWithRBV, "pco_imgs2dump")
-    pco_dump_counter = Component(EpicsSignal, "pco_dump_counter")
-    pco_dump_camera_memory = Component(EpicsSignal, "pco_dump_camera_memory")
-    pco_max_imgs_seg0 = Component(EpicsSignalRO, "pco_max_imgs_seg0_RBV")
-    pco_ready2acquire = Component(EpicsSignal, "pco_ready2acquire")
-    pco_set_frame_rate = Component(EpicsSignal, "pco_set_frame_rate")
+    pco_cancel_dump = ADComponent(EpicsSignal, "pco_cancel_dump")
+    pco_live_view = ADComponent(EpicsSignal, "pco_live_view")
+    pco_trigger_mode = ADComponent(EpicsSignal, "pco_trigger_mode")
+    pco_edge_fastscan = ADComponent(EpicsSignal, "pco_edge_fastscan")
+    pco_is_frame_rate_mode = ADComponent(EpicsSignal, "pco_is_frame_rate_mode")
+    pco_imgs2dump = ADComponent(EpicsSignalWithRBV, "pco_imgs2dump")
+    pco_dump_counter = ADComponent(EpicsSignal, "pco_dump_counter")
+    pco_dump_camera_memory = ADComponent(EpicsSignal, "pco_dump_camera_memory")
+    pco_max_imgs_seg0 = ADComponent(EpicsSignalRO, "pco_max_imgs_seg0_RBV")
+    pco_ready2acquire = ADComponent(EpicsSignal, "pco_ready2acquire")
+    pco_set_frame_rate = ADComponent(EpicsSignal, "pco_set_frame_rate")
+    
+    # FIXME: ophyd has problem with tring to unstage the RBV value inside RE()
+    image_mode = ADComponent(EpicsSignal, "ImageMode")
+    num_images_VAL = ADComponent(EpicsSignal, "NumImages")
     
 
 class MyHDF5Plugin(HDF5Plugin, FileStoreHDF5IterativeWrite):
@@ -244,9 +249,9 @@ class MyHDF5Plugin(HDF5Plugin, FileStoreHDF5IterativeWrite):
     # In [48]: pco_edge.hdf1.xml_layout_file.get()
     # Out[48]: '<array size=21, type=time_char>'
     # FIXME: xml_layout_file = Component(EpicsSignalWithRBV, "XMLFileName", string=True)
-    xml_layout_file = Component(EpicsSignal, "XMLFileName", string=True)    # use as WRITE-ONLY for now due to error above
-    xml_layout_valid = Component(EpicsSignalRO, "XMLValid_RBV")
-    xml_layout_error_message = Component(EpicsSignalRO, "XMLErrorMsg_RBV", string=True)
+    xml_layout_file = ADComponent(EpicsSignal, "XMLFileName", string=True)    # use as WRITE-ONLY for now due to error above
+    xml_layout_valid = ADComponent(EpicsSignalRO, "XMLValid_RBV")
+    xml_layout_error_message = ADComponent(EpicsSignalRO, "XMLErrorMsg_RBV", string=True)
     
     def get_frames_per_point(self):
         return self.parent.cam.num_images.get()
