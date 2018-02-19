@@ -135,6 +135,7 @@ def _mona_tomo(
         stage_sigs = OrderedDict()
         stage_sigs["hdf1"] = det.hdf1.stage_sigs
         stage_sigs["cam"] = det.cam.stage_sigs
+        det.image.stage_sigs["array_counter"] = 0
 
         yield from _plan_edgeSet(filepath, filename, numImage, exposureTime, frate, pso=pso)
         yield from _plan_setPSO(slewSpeed, scanDelta, acclTime, angStart=angStart, angEnd=angEnd, pso=pso, rotStage=rotStage)                              
@@ -156,16 +157,15 @@ def _mona_tomo(
             yield from _plan_edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, pso=pso)       
             print("flat for position #", ii+1, " is done!")
 
-        print("# "*30)
-        print("starting darks in 10s ...")
-        yield from bps.sleep(10)
+        # print("# "*30)
+        yield from bps.sleep(1)
         if darkPerScan == 1:    # set for dark field
             print("Acquiring dark images ...")
             yield from _plan_edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso) 
             print("dark is done!")
 
         print("sleeping ...")
-        yield from bps.sleep(10)
+        yield from bps.sleep(1)
         print("sleep is done")
 
         yield from bps.unstage(det)     # AFTER images, flats, and darks are collected
@@ -214,9 +214,24 @@ def mona_tomo(md={}, **kwargs):
     _md = dict(**params)
     _md.update(**md)
     _md["project"] = "mona"
+    _md["APS_storage_ring_current,mA"] = aps_current.value
     _md["datetime_plan_started"] = str(datetime.now())
 
-    return bpp.run_decorator(md = _md)(_mona_tomo)(**params)
+    staged_device_list = [pco_edge]
+    monitored_signals_list = [
+        pco_edge.image.array_counter, 
+        bm82.user_readback,
+        ]
+    
+    def _internal_tomo():
+        print("_internal_tomo()", params)
+        yield from bps.monitor(bm82.user_readback, name="rotation")
+        yield from bps.monitor(pco_edge.image.array_counter, name="primary")
+        yield from _mona_tomo(**params)
+        yield from bps.unmonitor(pco_edge.image.array_counter)
+        yield from bps.unmonitor(bm82.user_readback)
+
+    return bpp.run_decorator(md = _md)(_internal_tomo)()
 
 
 def _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter,clShutter=1, pso=None, rotStage=None):
