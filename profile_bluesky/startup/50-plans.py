@@ -25,7 +25,6 @@ def _mona_tomo(
         timeFile=0, clShutter=1,    
         ):
     """
-    
     to scan this plan, use the wrapper plan below::
     
         RE(mona_tomo(...))
@@ -146,6 +145,8 @@ def _mona_tomo(
 
         yield from bps.stage(det)
         yield from bps.sleep(1)
+        
+        yield from bps.create()
 
         yield from _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter, pso=pso, rotStage=rotStage)
         print("scan at position #",ii+1," is done!")
@@ -163,6 +164,9 @@ def _mona_tomo(
             print("Acquiring dark images ...")
             yield from _plan_edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso) 
             print("dark for position #", ii+1, " is done!")
+
+        yield from bps.read(det)
+        yield from bps.save()
 
         yield from bps.unstage(det)     # AFTER images, flats, and darks are collected
         # reset the original stage_sigs
@@ -220,9 +224,9 @@ def mona_tomo(md={}, **kwargs):
         ]
     
     def _internal_tomo():
-        print("_internal_tomo()", params)
+        # print("_internal_tomo()", params)
         yield from bps.monitor(bm82.user_readback, name="rotation")
-        yield from bps.monitor(pco_edge.image.array_counter, name="primary")
+        yield from bps.monitor(pco_edge.image.array_counter, name="array_counter")
         yield from _mona_tomo(**params)
         yield from bps.unmonitor(pco_edge.image.array_counter)
         yield from bps.unmonitor(bm82.user_readback)

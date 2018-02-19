@@ -58,6 +58,8 @@ try:
         if key in pco_edge.hdf1.stage_sigs:
             del pco_edge.hdf1.stage_sigs[key]
     #del pco_edge.cam.stage_sigs["num_images"]
+    pco_edge.read_attrs = ["hdf1"]
+    pco_edge.hdf1.read_attrs = ["full_file_name"]
     det = pco_edge  # developer use
 except TimeoutError as exc:
     print("Problem connecting to PCOIOC3:pco_edge - is the IOC off?\n" + str(exc))
