@@ -4,6 +4,10 @@ print(__file__)
 from collections import OrderedDict
 import bluesky.preprocessors as bpp
 
+NUM_FLAT_FRAMES = 10
+NUM_DARK_FRAMES = 10
+NUM_TEST_FRAMES = 10
+
 
 def _mona_tomo(
         exposureTime=0.2, 
@@ -90,7 +94,7 @@ def _mona_tomo(
     pathSep =  filepathString.rsplit('/')
     # TODO: logFilePath, logFileName = make_log_file( ...
     
-    numImage = numProjPerSweep+20
+    numImage = numProjPerSweep + NUM_FLAT_FRAMES + NUM_DARK_FRAMES
     
     # test camera -- start
     print(roiSizeX, roiSizeY)
@@ -142,34 +146,33 @@ def _mona_tomo(
         yield from bps.stage(det)
         yield from bps.sleep(1)
 
-        print("before _plan_edgeAcquisition(), cam stage sigs:\n", str(det.cam.stage_sigs))
-        print("before _plan_edgeAcquisition(), hdf1 stage sigs:\n", str(det.hdf1.stage_sigs))
         yield from _plan_edgeAcquisition(samInPos,samStage,numProjPerSweep,shutter, pso=pso, rotStage=rotStage)
-        print("after _plan_edgeAcquisition(), cam stage sigs:\n", str(det.cam.stage_sigs))
-        print("after _plan_edgeAcquisition(), hdf1 stage sigs:\n", str(det.hdf1.stage_sigs))
         print("scan at position #",ii+1," is done!")
-        #yield from bps.trigger(det)
-        yield from bps.unstage(det)
-
-        # reset the original stage_sigs
-        det.hdf1.stage_sigs = stage_sigs["hdf1"]
-        det.cam.stage_sigs = stage_sigs["cam"]
 
         samOutPos = samInPos + samOutDist
         
         if flatPerScan == 1:    # set for white field
             print("Acquiring flat images ...")
             yield from _plan_edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage,shutter, pso=pso)       
-            # det.cam.acquire.put("Done")
             print("flat for position #", ii+1, " is done!")
-                                
+
+        print("# "*30)
+        print("starting darks in 10s ...")
+        yield from bps.sleep(10)
         if darkPerScan == 1:    # set for dark field
             print("Acquiring dark images ...")
             yield from _plan_edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso) 
-            # det.cam.acquire.put("Done")
             print("dark is done!")
-        #if posNum!=1 and darkPerScan!=0 and flatPerScan!=0 and ii!=(posNum-1):       
-        #    det.hdf1.capture.put("Done")
+
+        print("sleeping ...")
+        yield from bps.sleep(10)
+        print("sleep is done")
+
+        yield from bps.unstage(det)     # AFTER images, flats, and darks are collected
+        # reset the original stage_sigs
+        det.hdf1.stage_sigs = stage_sigs["hdf1"]
+        det.cam.stage_sigs = stage_sigs["cam"]
+
         yield from bps.mv(cpr_proj_num, str(det.hdf1.file_number.value))
 
         yield from _plan_auto_increment_prefix_number()
@@ -292,7 +295,7 @@ def _plan_edgeTest(camScanSpeed,camShutterMode,roiSizeX=2560,roiSizeY=2160,pso=N
 
     # yield from mv(pso.scan_control, "Standard")
     yield from mv(det.cam.array_callbacks, "Enable")
-    yield from mv(det.cam.num_images, 10)
+    yield from mv(det.cam.num_images, NUM_TEST_FRAMES)
     yield from mv(det.cam.image_mode, "Multiple")
     yield from mv(det.cam.pco_global_shutter, camShutterMode)
     yield from mv(det.cam.pco_edge_fastscan, camScanSpeed)
@@ -324,7 +327,7 @@ def _plan_edgeSet(filepath, filename, numImage, exposureTime, frate, pso=None):
     det.cam.stage_sigs["pco_is_frame_rate_mode"] = "DelayExp"
     det.cam.stage_sigs["acquire_period"] = frate+1
     det.cam.stage_sigs["pco_set_frame_rate"] = frate
-    det.cam.stage_sigs["num_images"] = numImage
+    det.cam.stage_sigs["num_images"] = numImage-NUM_FLAT_FRAMES-NUM_DARK_FRAMES
     det.cam.stage_sigs["image_mode"] = "Multiple"
     det.cam.stage_sigs["acquire_time"] = exposureTime
     det.cam.stage_sigs["pco_trigger_mode"] = "Soft/Ext"
@@ -400,37 +403,13 @@ def _plan_edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, pso=None
     yield from bps.mv(shutter, "close")
     yield from bps.sleep(5)
     
-    # remember
-    stage_sigs = {}
-    stage_sigs["cam"] = det.cam.stage_sigs
-    stage_sigs["hdf1"] = det.hdf1.stage_sigs
+    yield from bps.abs_set(det.cam.pco_trigger_mode, "Auto", group="dark")
+    yield from bps.abs_set(det.cam.frame_type, 1, group="dark")     # 1 = Background
+    yield from bps.abs_set(det.cam.num_images, NUM_DARK_FRAMES, group="dark")
+    yield from bps.wait(group="dark")
+    yield from bps.sleep(2)
 
-    det.cam.stage_sigs["pco_trigger_mode"] = "Auto"
-    det.cam.stage_sigs["frame_type"] = 1     # 1 = Background
-    det.cam.stage_sigs["num_images"] = 10
-
-    yield from bps.stage(det)
-    yield from bps.sleep(1)
     yield from bps.trigger(det)
-    yield from bps.unstage(det)
-
-    # restore
-    det.cam.stage_sigs = stage_sigs["cam"]
-    det.hdf1.stage_sigs = stage_sigs["hdf1"]
-
-    # pso.start_pos.put(0.00000)
-    # pso.end_pos.put(6.0000)
-    # pso.scan_delta.put(0.3)
-    # pso.slew_speed.put(1)
-    # rotStage.velocity.put(3)
-    # rotStage.acceleration.put(1)
-    # pso.taxi()
-    # pso.fly()
-    # rotStage.velocity.put(50)
-    # rotStage.move(0)
-             
-    #    while det.hdf1.num_capture.value != det.hdf1.num_captured.value:
-    #        time.sleep(1)                
 
     yield from bps.mv(samStage, samInPos)
 
@@ -444,39 +423,15 @@ def _plan_edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter
     yield from bps.mv(shutter, "open")
     yield from bps.sleep(5)
     
-    # remember
-    stage_sigs = {}
-    stage_sigs["cam"] = det.cam.stage_sigs
-    stage_sigs["hdf1"] = det.hdf1.stage_sigs
+    yield from bps.abs_set(det.cam.pco_trigger_mode, "Auto", group="flat")
+    yield from bps.abs_set(det.cam.frame_type, 2, group="flat")     # 2 = FlatField
+    yield from bps.abs_set(det.cam.num_images, NUM_FLAT_FRAMES, group="flat")
+    yield from bps.wait(group="flat")
+    yield from bps.sleep(2)
 
-    det.cam.stage_sigs["pco_trigger_mode"] = "Auto"
-    det.cam.stage_sigs["frame_type"] = 2     # 2 = FlatField
-    det.cam.stage_sigs["num_images"] = 10
-    
-    yield from bps.stage(det)
-    yield from bps.sleep(1)
     yield from bps.trigger(det)
-    yield from bps.unstage(det)
 
-    # restore
-    det.cam.stage_sigs = stage_sigs["cam"]
-    det.hdf1.stage_sigs = stage_sigs["hdf1"]
-
-    # pso.start_pos.put(0.00000)
-    # pso.end_pos.put(6.0000)
-    # pso.scan_delta.put(0.3)
-    # pso.slew_speed.put(1)
-    # rotStage.velocity.put(3)
-    # rotStage.acceleration.put(1)
-    # pso.taxi()
-    # pso.fly()
-    # rotStage.velocity.put(50)
-    # rotStage.move(0)
-    
     yield from bps.mv(shutter, "close")
     yield from bps.sleep(5)
-
-    #    while det.hdf1.num_capture.value != det.hdf1.num_captured.value:
-    #        time.sleep(1)                
 
     yield from bps.mv(samStage, samInPos)
