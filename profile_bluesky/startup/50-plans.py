@@ -162,11 +162,7 @@ def _mona_tomo(
         if darkPerScan == 1:    # set for dark field
             print("Acquiring dark images ...")
             yield from _plan_edgeAcquireDark(samInPos,filepath,samStage,rotStage,shutter, pso=pso) 
-            print("dark is done!")
-
-        print("sleeping ...")
-        yield from bps.sleep(1)
-        print("sleep is done")
+            print("dark for position #", ii+1, " is done!")
 
         yield from bps.unstage(det)     # AFTER images, flats, and darks are collected
         # reset the original stage_sigs
@@ -422,9 +418,10 @@ def _plan_edgeAcquireDark(samInPos,filepath,samStage,rotStage, shutter, pso=None
     yield from bps.abs_set(det.cam.frame_type, 1, group="dark")     # 1 = Background
     yield from bps.abs_set(det.cam.num_images, NUM_DARK_FRAMES, group="dark")
     yield from bps.wait(group="dark")
-    yield from bps.sleep(2)
+    yield from bps.sleep(5)
 
     yield from bps.trigger(det)
+    yield from bps.sleep(5)
 
     yield from bps.mv(samStage, samInPos)
 
@@ -442,7 +439,7 @@ def _plan_edgeAcquireFlat(samInPos,samOutPos,filepath,samStage,rotStage, shutter
     yield from bps.abs_set(det.cam.frame_type, 2, group="flat")     # 2 = FlatField
     yield from bps.abs_set(det.cam.num_images, NUM_FLAT_FRAMES, group="flat")
     yield from bps.wait(group="flat")
-    yield from bps.sleep(2)
+    yield from bps.sleep(5)
 
     yield from bps.trigger(det)
 
