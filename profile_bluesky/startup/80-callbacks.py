@@ -4,6 +4,7 @@ print(__file__)
 
 import APS_BlueSky_tools.callbacks
 import APS_BlueSky_tools.filewriters
+import time as ttime
 
 # collect last scan's documents into doc_collector.documents
 doc_collector = APS_BlueSky_tools.callbacks.DocumentCollectorCallback()
@@ -38,6 +39,7 @@ class MonaCallback0MQ(object):
 
     def receiver(self, key, document):
         """receive from RunEngine, send from 0MQ talker"""
+        print("MonaCallback0MQ.receiver()", key)
         mona_zmq_sender(
             self.talker, 
             key, 
@@ -50,28 +52,41 @@ class MonaCallback0MQ(object):
 class MyCallbackReceiver(object):
     def __init__(self, talker):
         self.talker = talker
-        self.thread_queue = deque()
+        #self.thread_queue = deque()
+        
+        self.poll_time = .1 # seconds
+        self.doc_queue = deque()
+        self.thread = threading.Thread(target=self.queue_monitor, daemon=True)
+        self.thread.start()
 
     def receiver(self, key, document):
         """
         receives documents from a BlueSky Callback and starts ZMQ receiver in a thread
         """
         print("MyCallbackReceiver.receiver()\n", key, document)
-        #thread = threading.Thread(target=self.talker, args=(key, document), daemon=True)
-        #self.thread_queue.append(thread.start())
-        
-        # daemon=True avoids need to walk the thread queue and remove the dead ones
+        self.doc_queue.append((key, document))
+
+    def queue_monitor(self):
+        while True:
+            if len(self.doc_queue) > 1:
+                name, doc = self.doc_queue.pop()
+                print("Got an item in the queue", name)
+                print("Queue size : ", len(self.doc_queue))
+                self.talker(name, doc)
+                print("sent successfully to talker")
+            else:
+                ttime.sleep(self.poll_time)
 
 
-zmq_talker = MonaCallback0MQ(
-    detector=pco_edge.image,
-    signal_name=pco_edge.image.array_counter.name,
-    rotation_name=bm82.user_readback.name,
-    host=None)
+#zmq_talker = MonaCallback0MQ(
+#    detector=pco_edge.image,
+#    signal_name=pco_edge.image.array_counter.name,
+#    rotation_name=bm82.user_readback.name,
+#    host=None)
 
-zmq_thread_factory = MyCallbackReceiver(zmq_talker.receiver)
+#zmq_thread_factory = MyCallbackReceiver(zmq_talker.receiver)
 
-RE.subscribe(zmq_thread_factory.receiver)
+#RE.subscribe(zmq_thread_factory.receiver)
 
 
 def simple_plan():
