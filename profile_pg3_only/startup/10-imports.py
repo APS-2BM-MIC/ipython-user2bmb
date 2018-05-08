@@ -19,7 +19,7 @@ from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
 from ophyd.areadetector.plugins import PluginBase
 
 # bps.mv, bps.mvr, ... (make it obvious where this originate)
-import bluesky.plan_stubs import as bps
+import bluesky.plan_stubs as bps
 
 from APS_BlueSky_tools.devices import userCalcsDevice
 from APS_BlueSky_tools.devices import ApsPssShutter
