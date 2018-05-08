@@ -1,7 +1,5 @@
 print(__file__)
 
-
-USER2BMB_ROOT_DIR = "/local/user2bmb"
+"""various signals at the beam line"""
 
 aps_current = EpicsSignalRO("S:SRcurrentAI", name="aps_current")
-
