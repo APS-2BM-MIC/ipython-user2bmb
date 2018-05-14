@@ -29,10 +29,8 @@ class MyWaveform(Device):
 try:
 
     # TODO: modify for 2-bm-b
-    BUSY_PV = 'prj:mybusy'
-    TIME_WAVE_PV = 'prj:t_array'
-    X_WAVE_PV = 'prj:x_array'
-    Y_WAVE_PV = 'prj:y_array'
+    BUSY_PV = '2bmb:PSOFly1:taxi'
+    BUSY_PV = '2bmb:PSOFly1:fly'
 
     class BusyFlyerDevice(Device):
         """
@@ -40,15 +38,10 @@ try:
         """
 
         busy = Component(EpicsSignal, BUSY_PV, string=True)
-        time = Component(MyWaveform, TIME_WAVE_PV)
-        axis = Component(MyWaveform, X_WAVE_PV)
-        signal = Component(MyWaveform, Y_WAVE_PV)
         
         def __init__(self, *args, **kwargs):
             super().__init__('', parent=None, **kwargs)
             self.complete_status = None
-            self.t0 = time.time()
-            self.waves = (self.time, self.axis, self.signal)
 
         def kickoff(self):
             """
@@ -82,13 +75,7 @@ try:
             """
             logger.info("describe_collect()")
             schema = {}
-            for item in self.waves:
-                structure = dict(
-                    source = item.wave.pvname,
-                    dtype = "number",
-                    shape = (1,)
-                )
-                schema[item.name] = structure
+            # TODO: What will be returned?
             return {self.name: schema}
 
         def collect(self):
@@ -97,18 +84,7 @@ try:
             """
             logger.info("collect(): " + str(self.complete_status))
             self.complete_status = None
-            for i in range(int(self.time.number_read.value)):
-                data = {}
-                timestamps = {}
-                t = time.time()
-                for item in self.waves:
-                    data[item.name] = item.wave.value[i]
-                    timestamps[item.name] = t
-                
-                # demo: offset time instead (removes large offset)
-                data[self.time.name] -= self.t0
-                
-                yield dict(time=time.time(), data=data, timestamps=timestamps)
+            # TODO: What will be yielded?
 
 
     bfly = BusyFlyerDevice(name="bfly")

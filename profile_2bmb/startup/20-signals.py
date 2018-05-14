@@ -14,6 +14,9 @@ USER2BMB_ROOT_DIR = "/local/user2bmb"
 
 aps_current = EpicsSignalRO("S:SRcurrentAI", name="aps_current")
 
+psofly1 = TaxiFlyScanDevice("2bmb:PSOFly1:", name="psofly1")
+
+    
 try:
     A_shutter = ApsPssShutter("2bma:A_shutter", name="A_shutter")
     B_shutter = ApsPssShutter("2bma:B_shutter", name="B_shutter")
