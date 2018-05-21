@@ -26,7 +26,7 @@ callback_db['print_scan_ids'] = RE.subscribe(print_scan_ids, 'start')
 import socket 
 import getpass 
 HOSTNAME = socket.gethostname() or 'localhost' 
-USERNAME = getpass.getuser() or 'synApps_xxx_user' 
+USERNAME = getpass.getuser() or '2-BM user' 
 RE.md['login_id'] = USERNAME + '@' + HOSTNAME
 RE.md['BLUESKY_VERSION'] = bluesky.__version__
 RE.md['OPHYD_VERSION'] = ophyd.__version__

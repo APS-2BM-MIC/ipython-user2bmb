@@ -35,7 +35,7 @@ RE.md['USER2BMB_ROOT_DIR'] = USER2BMB_ROOT_DIR
 import socket 
 import getpass 
 HOSTNAME = socket.gethostname() or 'localhost' 
-USERNAME = getpass.getuser() or 'synApps_xxx_user' 
+USERNAME = getpass.getuser() or '2-BM-B user' 
 RE.md['login_id'] = USERNAME + '@' + HOSTNAME
 RE.md['BLUESKY_VERSION'] = bluesky.__version__
 RE.md['OPHYD_VERSION'] = ophyd.__version__
