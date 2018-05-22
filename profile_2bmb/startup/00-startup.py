@@ -1,9 +1,5 @@
 print(__file__)
 
-# Make ophyd listen to pyepics.
-from ophyd import setup_ophyd
-setup_ophyd()
-
 from bluesky import RunEngine
 from bluesky.utils import get_history
 RE = RunEngine(get_history())
