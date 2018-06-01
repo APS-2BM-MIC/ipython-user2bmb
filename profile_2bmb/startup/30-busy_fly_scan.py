@@ -2,7 +2,6 @@ print(__file__)
 
 """soft glue scan"""
 
-bmb100 = EpicsMotor("2bmb:m100", name="bmb100")
 
 class EnsemblePSOFlyDevice(TaxiFlyScanDevice):
     motor_pv_name = Component(EpicsSignalRO, "motorName")
@@ -17,13 +16,16 @@ class EnsemblePSOFlyDevice(TaxiFlyScanDevice):
     delta_time = Component(EpicsSignalRO, "deltaTime")
     # detector_setup_time = Component(EpicsSignal, "detSetupTime")
     # pulse_type = Component(EpicsSignal, "pulseType")
+    
+    # TODO: complete
+    # https://github.com/prjemian/ipython_mintvm/blob/master/profile_bluesky/startup/notebooks/busy_fly_scan.ipynb
 
 
 psofly = EnsemblePSOFlyDevice("2bmb:PSOFly:", name="psofly")
 
 
 def simple_demo():
-    motor = bmb100
+    motor = sample_stage.rotary
     print("rotary stage position: {}".format(motor.position))
     m_start = motor.position
     yield from bps.mv(motor, 0)
