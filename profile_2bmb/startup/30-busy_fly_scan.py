@@ -40,13 +40,13 @@ def motor_set_modulo(motor, modulo):
 
 def _acquire_n_frames(det, quantity):
     """internal: for measuring n darks or flats"""
-    yield from bps.mv(
-        det.cam.acquire, 0,
-        det.cam.trigger_mode, "Internal",
-        det.cam.image_mode, "Single",
-    )
-    for image_number in range(quantity):
-        yield from bps.mv(det.cam.acquire, 1)
+    yield from bps.mv(det.cam.acquire, 0)
+    det.cam.stage_sigs["trigger_mode"] = "Internal"
+    det.cam.stage_sigs["image_mode"] = "Multiple"
+    det.cam.stage_sigs["num_images"] = quantity
+    #for image_number in range(quantity):
+    #    yield from bps.trigger(det.cam.acquire)
+    yield from bps.trigger(det.cam.acquire)
 
 
 def measure_darks(det, shutter, quantity):
@@ -63,8 +63,8 @@ def measure_flats(det, shutter, quantity, samStage, samPos):
     """
     measure response of detector to empty beam
     """
-    yield from set_white_frame()
     priorPosition = samStage.position
+    yield from set_white_frame()
     yield from bps.mv(samStage, samPos)
     yield from bps.abs_set(shutter, "open")
     yield from bps.sleep(SHUTTER_WAIT_TIME_SECONDS)
@@ -72,7 +72,7 @@ def measure_flats(det, shutter, quantity, samStage, samPos):
     yield from bps.mv(samStage, priorPosition)
 
 
-def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, samInPos=0, samOutDist=7, md=None):
+def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, samInPos=0, samOutDist=-3, md=None):
     """
     standard tomography fly scan with BlueSky
     """
