@@ -32,7 +32,7 @@ def append_wa_motor_list(*motorlist):
 
 # Uncomment the following lines to turn on 
 # verbose messages for debugging.
-# import logging
+import logging
 # ophyd.logger.setLevel(logging.DEBUG)
 # logging.basicConfig(level=logging.DEBUG)
 

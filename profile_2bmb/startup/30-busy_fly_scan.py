@@ -37,7 +37,7 @@ def motor_set_modulo(motor, modulo):
         yield from bps.mv(motor.set_use_switch, 0)
 
 
-def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, md=None):
+def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, samInPos=0, md=None):
     """
     standard tomography fly scan with BlueSky
     """
@@ -63,7 +63,10 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
                 yield from bps.unmonitor(d)
             except IllegalMessageSequence:
                 pass
-        yield from bps.abs_set(shutter, "close", group='shutter')
+        try:
+            yield from bps.abs_set(shutter, "close", group='shutter')
+        except RuntimeError as exc:
+            print(exc)
         yield from bps.mv(rotStage.velocity, ROT_STAGE_FAST_SPEED)
         yield from bps.mv(rotStage, 0.00)
         yield from bps.wait(group='shutter')
@@ -108,7 +111,11 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
             pso.slew_speed, slewSpeed,
             rotStage.velocity, ROT_STAGE_FAST_SPEED,
             rotStage.acceleration, slewSpeed/accl,
-            det.cam.num_images, numProjPerSweep
+            det.cam.num_images, numProjPerSweep,
+            det.cam.trigger_mode, "Overlapped",
+            det.cam.trigger_source, "GPIO_0",
+            det.cam.trigger_polarity, "Low",
+            det.cam.image_mode, "Continuous",
         )
         yield from bps.mv(pso.taxi, "Taxi")
         logging.debug("after taxi")
@@ -122,7 +129,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
         yield from bps.abs_set(det.cam.acquire, 1)
         yield from bps.abs_set(pso.fly, "Fly", group='fly')
         yield from bps.wait(group='fly')
-        yield from bps.abs_set(det.cam.acquire, 0)
+        #yield from bps.abs_set(det.cam.acquire, 0)
         logging.debug("after fly")
         # return rotStage to standard
 

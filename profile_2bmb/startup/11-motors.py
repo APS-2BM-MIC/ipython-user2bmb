@@ -16,8 +16,8 @@ class TomoStage(MotorBundle):
 
 
 tomo_stage = TomoStage(name="tomo_stage")
-samStage = tomo_stage.x
-#samStage = tomo_stage.y
+#samStage = tomo_stage.x
+samStage = tomo_stage.y
 
 #camera_rail = EpicsMotor("2bmb:m31", name="camera_rail", labels=("camera",))
 top_z_0 = EpicsMotor("2bmb:m76", name="top_z_0", labels=("top",))

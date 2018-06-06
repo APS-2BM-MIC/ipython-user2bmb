@@ -24,6 +24,7 @@ from bluesky import IllegalMessageSequence
 
 # bps.mv, bps.mvr, ... (make it obvious where this originate)
 import bluesky.plan_stubs as bps
+import bluesky.preprocessors as bpp
 
 from APS_BlueSky_tools.devices import userCalcsDevice
 from APS_BlueSky_tools.devices import ApsPssShutter
