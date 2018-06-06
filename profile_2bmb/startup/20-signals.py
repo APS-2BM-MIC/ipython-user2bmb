@@ -10,7 +10,7 @@ EPICS_PV_prefix["PG3 PointGrey Grasshopper3"] = "2bmbPG3:"
 
 #magic_config["PG3 PointGrey Grasshopper3"] = (PGClass,
 #                                              {'name': 'pg_dt', 'prefix': '2bmbPG3:'},)
-                                              
+
 #for klass, cfg in magic_config.values():
 #    ip.user_ns[cfg['name']] = klass(**cfg)
 
@@ -62,6 +62,8 @@ class APS_Machine_Parameters_Device(Device):
 
 APS = APS_Machine_Parameters_Device(name="APS")
 aps_current = APS.current
+
+sd.baseline.append(APS)
 
 
 class DualPf4FilterBox(Device):
