@@ -5,7 +5,7 @@ print(__file__)
 
 #22
 # from APS_BlueSky_tools.devices import ApsPssShutter
-class ApsPssShutter(Device):
+class ApsPssShutter_old(Device):
     """
     APS PSS shutter
     
@@ -92,6 +92,64 @@ class ApsPssShutter(Device):
             status._finished(success=True)
         
         threading.Thread(target=run_and_delay, daemon=True).start()
+        return status
+
+
+class new_ApsPssShutter(Device):
+    """
+    doc string TBA
+    """
+    open_bit = Component(EpicsSignal, ":open")
+    close_bit = Component(EpicsSignal, ":close")
+    delay_s = 1.2
+    busy = Signal(value=False, name="busy")
+    state = FormattedComponent(EpicsSignalRO, "{self.state_pv}")
+
+    # strings the user will use
+    open_str = 'Open'
+    close_str = 'Close'
+
+    def __init__(self, prefix, state_pv, *args, **kwargs):
+        self.state_pv = state_pv
+        super().__init__(prefix, *args, **kwargs)
+
+    def set(self, value, **kwargs):
+        # first, validate the input value
+        acceptables = (close_str, open_str)
+        if value not in acceptables:
+            msg = "value should be one of " + " | ".join(acceptables)
+            msg += " : received " + str(value)
+            raise ValueError(msg)
+
+        command_signal = {
+            self.open_str: self.open_bit, 
+            self.close_str: self.close_bit
+        }[value]
+        expected_value = {
+            self.open_str: self.open_val, 
+            self.close_str: self.close_val
+        }[value]
+
+        status = DeviceStatus(self)
+        # TODO:
+        
+        def shutter_cb(value, timestamp, **kwargs):
+            value = enums[int(value)]
+            if value == expected_value:
+                self._set_st = None
+                self.state.clear_sub(shutter_cb)
+                status._finished()
+
+        @run_in_thread
+        def run_and_delay():
+            self.busy.put(True)
+            move_shutter()
+            # sleep, since we don't *know* when the shutter has moved
+            time.sleep(self.delay_s)
+            self.busy.put(False)
+            status._finished(success=True)
+        
+        yield from run_and_delay()
         return status
 
 
