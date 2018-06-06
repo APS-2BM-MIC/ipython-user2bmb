@@ -3,6 +3,15 @@ print(__file__)
 """ophyd support for the busy record fly scan"""
 
 
+def run_in_thread(func):
+    """run ``func`` in thread"""
+    def wrapper(*args, **kwargs):
+        thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+        thread.start()
+        return thread
+    return wrapper
+
+
 #22
 # from APS_BlueSky_tools.devices import ApsPssShutter
 class ApsPssShutter_old(Device):
