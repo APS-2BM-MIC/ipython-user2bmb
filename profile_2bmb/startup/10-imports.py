@@ -8,6 +8,7 @@ import time
 import threading
 
 from ophyd import Component, Device, DeviceStatus, Signal
+from ophyd import FormattedComponent
 from ophyd import EpicsMotor, EpicsScaler
 from ophyd.scaler import ScalerCH
 from ophyd import EpicsSignal, EpicsSignalRO, EpicsSignalWithRBV

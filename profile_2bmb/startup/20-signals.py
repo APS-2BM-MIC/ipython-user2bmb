@@ -79,4 +79,4 @@ class DualPf4FilterBox(Device):
     mode = Component(EpicsSignal, "useMono", string=True)
 
 
-pf4 = DualPf4FilterBox("2bmb:pf4:", name="pf4")
+#pf4 = DualPf4FilterBox("2bmb:pf4:", name="pf4")

@@ -5,8 +5,10 @@ print(__file__)
 NUM_FLAT_FRAMES = 10
 NUM_DARK_FRAMES = 10
 NUM_TEST_FRAMES = 10
-ROT_STAGE_RETURN_SPEED = 50
-ROT_STAGE_STANDARD_SPEED = 30
+ROT_STAGE_FAST_SPEED = 50
+
+
+# scanDelta = 1.0*(angEnd-angStart)/numProjPerSweep
 
 
 class EnsemblePSOFlyDevice(TaxiFlyScanDevice):
@@ -37,32 +39,32 @@ def motor_set_modulo(motor, modulo):
         yield from bps.mv(motor.set_use_switch, 0)
 
 
-def _init_tomo_fly_(*, samInPos=0):
+def _init_tomo_fly_(*, samInPos=0, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1):
     pso = psofly
-    samStage = sample_stage.x       # TODO: confirm (is bm63)
-    rotStage = sample_stage.rotary
+    #samStage = tomo_stage.x
+    rotStage = tomo_stage.rotary
     det = pg3_det
-    shutter = A_shutter
+    shutter = B_shutter
 
     yield from bps.mv(det.cam.nd_attributes_file, "monaDetectorAttributes.xml")
-    yield from bps.mv(det.cam.frame_type, 'Normal')
+    yield from set_image_frame()
 
     yield from bps.stop(rotStage)
     yield from motor_set_modulo(rotStage, 360.0)
 
-    rotStage.stage_sigs["velocity"] = ROT_STAGE_STANDARD_SPEED
+    rotStage.stage_sigs["velocity"] = ROT_STAGE_FAST_SPEED
     rotStage.stage_sigs["acceleration"] = 3
     yield from bps.mv(rotStage, 0)
     yield from bps.mv(samStage, samInPos)
 
     # TODO: anything from _plan_edgeSet() needed? (Feb 2018 setup: 50-plans.py)
 
-    pso.stage_sigs["start_pos"] = angStart
-    pso.stage_sigs["end_pos"] = angEnd
-    pso.stage_sigs["scan_delta"] = scanDelta
+    pso.stage_sigs["start_pos"] = start
+    pso.stage_sigs["end_pos"] = stop
+    pso.stage_sigs["scan_delta"] = 1.0*(stop-start)/numProjPerSweep
     pso.stage_sigs["slew_speed"] = slewSpeed
     rotStage.stage_sigs["velocity"] = slewSpeed
-    rotStage.stage_sigs["acceleration"] = acclTime   
+    rotStage.stage_sigs["acceleration"] = 1.0*slewSpeed/accl   
 
     yield from bps.stage(det) # TODO: why?
     yield from bps.sleep(1)
@@ -70,7 +72,7 @@ def _init_tomo_fly_(*, samInPos=0):
     yield from bps.create() # TODO: why?
 
 
-def tomo_scan(*, start=0, stop=180, scanDelta=0.1, slewSpeed=10, md=None):
+def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, md=None):
     """
     standard tomography fly scan with BlueSky
     """
@@ -81,25 +83,28 @@ def tomo_scan(*, start=0, stop=180, scanDelta=0.1, slewSpeed=10, md=None):
 
     pso = psofly
     det = pg3_det
-    theta = sample_stage.rotary
-    shutter = A_shutter
+    rotStage = tomo_stage.rotary
+    shutter = B_shutter
 
     staged_device_list = [det]
     monitored_signals_list = [
         det.image.array_counter, 
-        rotary.user_readback,
+        rotStage.user_readback,
         ]
 
     @bpp.run_decorator(md = _md)
     def _internal_tomo():
-        yield from bps.monitor(theta.user_readback, name="rotation")
+        yield from bps.monitor(rotStage.user_readback, name="rotation")
         yield from bps.monitor(det.image.array_counter, name="array_counter")
 
-        yield from _init_tomo_fly_()
+        yield from _init_tomo_fly_(
+            start=start, 
+            stop=stop, 
+            numProjPerSweep=numProjPerSweep, 
+            slewSpeed=slewSpeed)
 
-        # TODO: remove comment for operations
         # do not touch shutter during development
-        # yield from bps.abs_set(shutter, "open")
+        yield from bps.abs_set(shutter, "open")
 
         # back off to the taxi point (back-off distance before fly start)
         yield from bps.mv(pso.taxi, "Taxi")
@@ -109,14 +114,13 @@ def tomo_scan(*, start=0, stop=180, scanDelta=0.1, slewSpeed=10, md=None):
         yield from bps.mv(det.cam.acquire, 1)   # TODO: why not trigger?
         yield from bps.mv(pso.fly, "Fly")
 
-        #TODO: op cit
-        # yield from bps.abs_set(shutter, "close")
+        yield from bps.abs_set(shutter, "close")
 
         # return rotStage to standard
-        rotStage.stage_sigs["velocity"] = ROT_STAGE_RETURN_SPEED
+        rotStage.stage_sigs["velocity"] = ROT_STAGE_FAST_SPEED
         yield from bps.mv(rotStage, 0.00)
 
         yield from bps.unmonitor(det.image.array_counter)
-        yield from bps.unmonitor(theta.user_readback)
+        yield from bps.unmonitor(rotStage.user_readback)
 
     return (yield from _internal_tomo())
