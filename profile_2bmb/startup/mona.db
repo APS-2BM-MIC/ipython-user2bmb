@@ -1,0 +1,11 @@
+# file: mona.db
+# purpose: provide PVs for MONA modules to advise BlueSky
+# to run:  ./run_mona_ioc.sh
+
+record(bo, "mona:StopAcquisition") {
+    # MONA module will set this
+    # BlueSky will clear this once acquisition has been stopped
+    field(DESC, "MONA modules wants scan to end")
+    field(ZNAM, "Ok")
+    field(ONAM, "Stop")
+}

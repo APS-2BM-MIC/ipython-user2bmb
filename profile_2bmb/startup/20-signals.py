@@ -19,6 +19,13 @@ EPICS_PV_prefix["PG3 PointGrey Grasshopper3"] = "2bmbPG3:"
 USER2BMB_ROOT_DIR = "/local/user2bmb"
 
 
+class MonaModuleSignals(Device):
+    # per ./mona.db
+    stop_acquisition = EpicsSignal("mona:StopAcquisition")
+
+mona = MonaModuleSignals(name="mona")
+
+
 try:
     A_shutter = ApsPssShutter("2bma:A_shutter", name="A_shutter")
     B_shutter = ApsPssShutter("2bma:B_shutter", name="B_shutter")
