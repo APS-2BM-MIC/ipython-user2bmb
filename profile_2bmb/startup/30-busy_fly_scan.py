@@ -37,33 +37,6 @@ def motor_set_modulo(motor, modulo):
         yield from bps.mv(motor.set_use_switch, 0)
 
 
-def _init_tomo_fly_(*, samInPos=0, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1):
-    pso = psofly
-    #samStage = tomo_stage.x
-    rotStage = tomo_stage.rotary
-    det = pg3_det
-    shutter = B_shutter
-
-    yield from bps.mv(
-        det.cam.nd_attributes_file, "monaDetectorAttributes.xml",
-        det.hdf1.num_capture, numProjPerSweep    # + darks & flats
-    )
-    yield from set_image_frame()
-
-    yield from bps.stop(rotStage)
-    yield from motor_set_modulo(rotStage, 360.0)
-    
-    yield from bps.mv(
-        rotStage.velocity, ROT_STAGE_FAST_SPEED, 
-        rotStage.acceleration, 3)
-    yield from bps.mv(
-        rotStage, 0, 
-        samStage, samInPos)
-
-    # TODO: anything from _plan_edgeSet() needed? (Feb 2018 setup: 50-plans.py)
-    logging.debug("end of _init_tomo_fly_()")
-
-
 def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, md=None):
     """
     standard tomography fly scan with BlueSky
@@ -103,16 +76,27 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
         yield from bps.monitor(det.image.array_counter, name="array_counter")
 
         # TODO: darks & flats
+        yield from set_dark_frame()
+        yield from set_white_frame()
 
         # do not touch shutter during development
         yield from bps.abs_set(shutter, "open", group="shutter")
 
-        yield from _init_tomo_fly_(
-            start=start,
-            stop=stop,
-            numProjPerSweep=numProjPerSweep,
-            slewSpeed=slewSpeed,
-            accl=accl)
+        yield from bps.mv(
+            det.cam.nd_attributes_file, "monaDetectorAttributes.xml",
+            det.hdf1.num_capture, numProjPerSweep    # + darks & flats
+        )
+        yield from set_image_frame()
+
+        yield from bps.stop(rotStage)
+        yield from motor_set_modulo(rotStage, 360.0)
+        
+        yield from bps.mv(
+            rotStage.velocity, ROT_STAGE_FAST_SPEED, 
+            rotStage.acceleration, 3)
+        yield from bps.mv(
+            rotStage, 0, 
+            samStage, samInPos)
 
         # back off to the taxi point (back-off distance before fly start)
         logging.debug("before taxi")
@@ -123,7 +107,8 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
             pso.scan_delta, 1.0*(stop-start)/numProjPerSweep,
             pso.slew_speed, slewSpeed,
             rotStage.velocity, ROT_STAGE_FAST_SPEED,
-            rotStage.acceleration, slewSpeed/accl
+            rotStage.acceleration, slewSpeed/accl,
+            det.cam.num_images, numProjPerSweep
         )
         yield from bps.mv(pso.taxi, "Taxi")
         logging.debug("after taxi")
@@ -132,6 +117,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
         logging.debug("before fly")
         yield from bps.mv(rotStage.velocity, slewSpeed)
         yield from bps.wait(group='shutter')    # shutters are slooow, MUST be done now
+        yield from set_image_frame()
         #yield from bps.trigger(det, group='fly')
         yield from bps.abs_set(det.cam.acquire, 1)
         yield from bps.abs_set(pso.fly, "Fly", group='fly')
