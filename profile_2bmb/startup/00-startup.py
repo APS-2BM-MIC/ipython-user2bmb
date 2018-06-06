@@ -39,5 +39,5 @@ def append_wa_motor_list(*motorlist):
 
 # diagnostics
 from bluesky.utils import ts_msg_hook
-#RE.msg_hook = ts_msg_hook
+RE.msg_hook = ts_msg_hook
 from bluesky.simulators import summarize_plan

@@ -92,7 +92,7 @@ pg3_det.cam.stage_sigs["frame_rate_auto_mode"] = "Manual"
 pg3_det.hdf1.stage_sigs["enable"] = "Enable"
 pg3_det.image.stage_sigs["enable"] = "Enable"
 pg3_det.pva1.stage_sigs["enable"] = "Enable"
-pg3_det.process1.stage_sigs["enable"] = "Enable"
+#pg3_det.process1.stage_sigs["enable"] = "Enable"
 
 
 # note: convenience plans -- call these BEFORE taking the image

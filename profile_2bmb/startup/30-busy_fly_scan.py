@@ -1,7 +1,3 @@
-import bluesky.plan_stubs as bps
-import bluesky.preprocessors as bpp
-from bluesky import IllegalMessageSequence
-
 print(__file__)
 
 """Aerotech Ensemble PSO scan"""
@@ -10,9 +6,6 @@ NUM_FLAT_FRAMES = 10
 NUM_DARK_FRAMES = 10
 NUM_TEST_FRAMES = 10
 ROT_STAGE_FAST_SPEED = 50
-
-
-# scanDelta = 1.0*(angEnd-angStart)/numProjPerSweep
 
 
 class EnsemblePSOFlyDevice(TaxiFlyScanDevice):
@@ -31,13 +24,14 @@ class EnsemblePSOFlyDevice(TaxiFlyScanDevice):
 
     # TODO: complete
     # https://github.com/prjemian/ipython_mintvm/blob/master/profile_bluesky/startup/notebooks/busy_fly_scan.ipynb
+    scan_control = Component(EpicsSignal, "scanControl")
 
 
 psofly = EnsemblePSOFlyDevice("2bmb:PSOFly:", name="psofly")
 
 
 def motor_set_modulo(motor, modulo):
-    if not 0 <= motor.value < modulo:
+    if not 0 <= motor.position < modulo:
         yield from bps.mv(motor.set_use_switch, 1)
         yield from bps.mv(motor.user_setpoint, motor.position % modulo)
         yield from bps.mv(motor.set_use_switch, 0)
@@ -50,30 +44,24 @@ def _init_tomo_fly_(*, samInPos=0, start=0, stop=180, numProjPerSweep=1500, slew
     det = pg3_det
     shutter = B_shutter
 
-    yield from bps.mv(det.cam.nd_attributes_file, "monaDetectorAttributes.xml")
+    yield from bps.mv(
+        det.cam.nd_attributes_file, "monaDetectorAttributes.xml",
+        det.hdf1.num_capture, numProjPerSweep    # + darks & flats
+    )
     yield from set_image_frame()
 
     yield from bps.stop(rotStage)
     yield from motor_set_modulo(rotStage, 360.0)
-
-    yield from bps.mv(rotStage, 0)
-    yield from bps.mv(samStage, samInPos)
+    
+    yield from bps.mv(
+        rotStage.velocity, ROT_STAGE_FAST_SPEED, 
+        rotStage.acceleration, 3)
+    yield from bps.mv(
+        rotStage, 0, 
+        samStage, samInPos)
 
     # TODO: anything from _plan_edgeSet() needed? (Feb 2018 setup: 50-plans.py)
-
-
-def _set_pso_stage_sigs(pso, rotStage, angStart, angEnd, scanDelta,
-                        slewSpeed, acclTime):
-
-    pso.stage_sigs["start_pos"] = angStart
-    pso.stage_sigs["end_pos"] = angEnd
-    pso.stage_sigs["scan_delta"] = scanDelta
-    pso.stage_sigs["slew_speed"] = slewSpeed
-    rotStage.stage_sigs["velocity"] = ROT_STAGE_STANDARD_SPEED
-    rotStage.stage_sigs["acceleration"] = 3
-
-    # rotStage.stage_sigs["acceleration"] = acclTime
-
+    logging.debug("end of _init_tomo_fly_()")
 
 
 def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, md=None):
@@ -90,21 +78,20 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
     rotStage = tomo_stage.rotary
     shutter = B_shutter
 
-    staged_device_list = [det]
+    staged_device_list = []
     monitored_signals_list = [
         det.image.array_counter,
         rotStage.user_readback,
         ]
 
-    _set_pso_stage_sigs(pso, rotstage, start, stop, scanDelta, slewSpeed, None)
-
     def cleanup():
-        for d in [det.image.array_counter, theta.user_readback]:
+        for d in [det.image.array_counter, rotStage.user_readback]:
             try:
                 yield from bps.unmonitor(d)
             except IllegalMessageSequence:
                 pass
         yield from bps.abs_set(shutter, "close", group='shutter')
+        yield from bps.mv(rotStage.velocity, ROT_STAGE_FAST_SPEED)
         yield from bps.mv(rotStage, 0.00)
         yield from bps.wait(group='shutter')
 
@@ -115,30 +102,47 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
         yield from bps.monitor(rotStage.user_readback, name="rotation")
         yield from bps.monitor(det.image.array_counter, name="array_counter")
 
+        # TODO: darks & flats
+
+        # do not touch shutter during development
+        yield from bps.abs_set(shutter, "open", group="shutter")
+
         yield from _init_tomo_fly_(
             start=start,
             stop=stop,
             numProjPerSweep=numProjPerSweep,
-            slewSpeed=slewSpeed)
-
-        # do not touch shutter during development
-        yield from bps.abs_set(shutter, "open")
+            slewSpeed=slewSpeed,
+            accl=accl)
 
         # back off to the taxi point (back-off distance before fly start)
+        logging.debug("before taxi")
+        yield from bps.mv(
+            pso.start, start,
+            pso.end, stop,
+            pso.scan_control, "Standard",
+            pso.scan_delta, 1.0*(stop-start)/numProjPerSweep,
+            pso.slew_speed, slewSpeed,
+            rotStage.velocity, ROT_STAGE_FAST_SPEED,
+            rotStage.acceleration, slewSpeed/accl
+        )
         yield from bps.mv(pso.taxi, "Taxi")
-
-        rotStage.stage_sigs["velocity"] = slewSpeed
+        logging.debug("after taxi")
 
         # run the fly scan
-        yield from bps.trigger(det.cam.acquire, group='fly')
+        logging.debug("before fly")
+        yield from bps.mv(rotStage.velocity, slewSpeed)
+        yield from bps.wait(group='shutter')    # shutters are slooow, MUST be done now
+        #yield from bps.trigger(det, group='fly')
+        yield from bps.abs_set(det.cam.acquire, 1)
         yield from bps.abs_set(pso.fly, "Fly", group='fly')
         yield from bps.wait(group='fly')
+        yield from bps.abs_set(det.cam.acquire, 0)
+        logging.debug("after fly")
+        # return rotStage to standard
 
         # read the camera
-        yield from bps.create(name='primary')
-        yield from bps.read(det)
-        yield from bps.save()
-        # return rotStage to standard
-        rotStage.stage_sigs["velocity"] = ROT_STAGE_RETURN_SPEED
+        #yield from bps.create(name='primary')
+        #yield from bps.read(det)
+        #yield from bps.save()
 
     return (yield from _internal_tomo())
