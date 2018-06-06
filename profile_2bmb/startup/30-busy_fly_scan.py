@@ -6,6 +6,7 @@ NUM_FLAT_FRAMES = 10
 NUM_DARK_FRAMES = 10
 NUM_TEST_FRAMES = 10
 ROT_STAGE_FAST_SPEED = 50
+SHUTTER_WAIT_TIME_SECONDS = 5
 
 
 class EnsemblePSOFlyDevice(TaxiFlyScanDevice):
@@ -37,7 +38,41 @@ def motor_set_modulo(motor, modulo):
         yield from bps.mv(motor.set_use_switch, 0)
 
 
-def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, samInPos=0, md=None):
+def _acquire_n_frames(det, quantity):
+    """internal: for measuring n darks or flats"""
+    yield from bps.mv(
+        det.cam.acquire, 0,
+        det.cam.trigger_mode, "Internal",
+        det.cam.image_mode, "Single",
+    )
+    for image_number in range(quantity):
+        yield from bps.mv(det.cam.acquire, 1)
+
+
+def measure_darks(det, shutter, quantity):
+    """
+    measure background of detector
+    """
+    yield from set_dark_frame()
+    yield from bps.abs_set(shutter, "close")
+    yield from bps.sleep(SHUTTER_WAIT_TIME_SECONDS)
+    yield from _acquire_n_frames(det, quantity)
+
+
+def measure_flats(det, shutter, quantity, samStage, samPos):
+    """
+    measure response of detector to empty beam
+    """
+    yield from set_white_frame()
+    priorPosition = samStage.position
+    yield from bps.mv(samStage, samPos)
+    yield from bps.abs_set(shutter, "open")
+    yield from bps.sleep(SHUTTER_WAIT_TIME_SECONDS)
+    yield from _acquire_n_frames(det, quantity)
+    yield from bps.mv(samStage, priorPosition)
+
+
+def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, samInPos=0, samOutDist=7, md=None):
     """
     standard tomography fly scan with BlueSky
     """
@@ -78,9 +113,9 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
         yield from bps.monitor(rotStage.user_readback, name="rotation")
         yield from bps.monitor(det.image.array_counter, name="array_counter")
 
-        # TODO: darks & flats
-        yield from set_dark_frame()
-        yield from set_white_frame()
+        # TODO: test before using!
+        # yield from measure_darks(det, shutter, NUM_DARK_FRAMES)
+        # yield from measure_flats(det, shutter, NUM_FLAT_FRAMES, samStage, samInPos + samOutDist)
 
         # do not touch shutter during development
         yield from bps.abs_set(shutter, "open", group="shutter")
@@ -115,7 +150,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
             det.cam.trigger_mode, "Overlapped",
             det.cam.trigger_source, "GPIO_0",
             det.cam.trigger_polarity, "Low",
-            det.cam.image_mode, "Continuous",
+            det.cam.image_mode, "Multiple",
         )
         yield from bps.mv(pso.taxi, "Taxi")
         logging.debug("after taxi")
@@ -129,7 +164,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=10, accl=1, 
         yield from bps.abs_set(det.cam.acquire, 1)
         yield from bps.abs_set(pso.fly, "Fly", group='fly')
         yield from bps.wait(group='fly')
-        #yield from bps.abs_set(det.cam.acquire, 0)
+        yield from bps.abs_set(det.cam.acquire, 0)
         logging.debug("after fly")
         # return rotStage to standard
 
