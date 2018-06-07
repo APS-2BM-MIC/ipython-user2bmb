@@ -11,9 +11,10 @@ from databroker.assets.handlers import HDF5DatasetSliceHandler
 
 class DataExchangeAreaDetectorHDF5Handler(HDF5DatasetSliceHandler):
     """
-    Handler for the 'AD_HDF5' spec used by Area Detectors.
-    In this spec, the key (i.e., HDF5 dataset path) is always
-    '/entry/data/data'.
+    Handler for the 'AD_HDF5' spec used by Area Detectors writing 
+    in the Data Exchange format.  In this spec, the key (i.e., 
+    HDF5 dataset path) is always '/exchange/data'.
+
     Parameters
     ----------
     filename : string
