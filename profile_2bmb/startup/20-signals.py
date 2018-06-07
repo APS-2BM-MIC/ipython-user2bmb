@@ -28,7 +28,9 @@ mona = MonaModuleSignals(name="mona")
 
 try:
     A_shutter = ApsPssShutter("2bma:A_shutter", name="A_shutter")
+    A_shutter_status = EpicsSignalRO("PA:02BM:STA_A_FES_OPEN_PL")
     B_shutter = ApsPssShutter("2bma:B_shutter", name="B_shutter")
+    B_shutter_status = EpicsSignalRO("PA:02BM:STA_B_SBS_OPEN_PL")
 except Exception as _exc:
     print(_exc)
 
