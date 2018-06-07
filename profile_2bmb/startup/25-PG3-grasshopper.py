@@ -4,8 +4,9 @@ print(__file__)
 
 from ophyd import PointGreyDetectorCam, ProcessPlugin
 
-HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona")
-
+HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona") + "/"
+HDF5_FILE_PATH = "/home/beams/USER2BMB/mona/%Y/%M/%d/"
+#HDF5_FILE_PATH = "/local/data/mona/"
 
 # PVA plugin not staged enabled/disabled yet, be prepared
 class MyPvaPlugin(PluginBase):
@@ -17,8 +18,13 @@ class MyPvaPlugin(PluginBase):
     pva_image_pv_name = ADComponent(EpicsSignalRO, "PvName_RBV")
 
 
-class MyHDF5Plugin(HDF5Plugin):
-    file_path = ADComponent(EpicsSignalWithRBV, "FilePath")
+class MyHDF5Plugin(HDF5Plugin, FileStoreHDF5IterativeWrite):
+    #file_path = ADComponent(EpicsSignalWithRBV, "FilePath")
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.filestore_spec = "AD_HDF5_DX_V1"
+        # DataExchangeAreaDetectorHDF5Handler
 
 
 class MyPointGreyDetectorCam(PointGreyDetectorCam):
@@ -37,6 +43,7 @@ class MyPointGreyDetectorCam(PointGreyDetectorCam):
     frame_rate_auto_mode = ADComponent(EpicsSignalWithRBV, "FrameRateAutoMode")
     # there are other PG3 properties, ignore them for now
 
+from ophyd.status import Status
 
 class MyPointGreyDetector(SingleTrigger, AreaDetector):
     """PointGrey Grasshopper3 detector as used by 2-BM-B tomography"""
@@ -46,13 +53,26 @@ class MyPointGreyDetector(SingleTrigger, AreaDetector):
     hdf1 = ADComponent( # FIXME:
         MyHDF5Plugin, 
         suffix="HDF1:",
-        # TypeError: __init__() got an unexpected keyword argument 'root'
-        #root='/',                               # for databroker
-        # TypeError: __init__() got an unexpected keyword argument 'write_path_template'
-        #write_path_template=HDF5_FILE_PATH,     # for EPICS AD
+        root='/',                               # for databroker
+        write_path_template=HDF5_FILE_PATH,     # for EPICS AD
         )
-    process1 = ADComponent(ProcessPlugin, "Proc1:")
+    #process1 = ADComponent(ProcessPlugin, "Proc1:")
     pva1 = ADComponent(MyPvaPlugin, "Pva1:")
+    
+    def trigger(self):
+        
+        hdf5_st = Status()
+        # callback to watch for the hdf5 plugin to finish, not needed for AD >= 3.3
+        def cb(value, **kwargs):
+            if value == 0:
+                hdf5_st._finished()
+                self.hdf1.write_file.clear_sub(cb)
+        # subscribe before we start running but don't run on current value
+        # should not matter, but belt and suspenders.
+        self.hdf1.write_file.subscribe(cb, run=False)
+        st = super().trigger()
+        return st & hdf5_st
+                
 
 """
 example setup for the PVA plugin (from FileStoreTIFFSquashing)
@@ -79,8 +99,8 @@ pg3_det = MyPointGreyDetector(
     name="pg3_det")
 # TODO: support the process plugin for darks and flats
 # TODO: configure pg3_det Image1 & PVA1 to use PROC1 output instead
-pg3_det.cam.stage_sigs["image_mode"] = "Continuous"
-pg3_det.cam.stage_sigs["array_counter"] = 0
+#pg3_det.cam.stage_sigs["image_mode"] = "Single"
+#pg3_det.cam.stage_sigs["array_counter"] = 0
 pg3_det.cam.stage_sigs["gain"] = 0
 pg3_det.cam.stage_sigs["auto_exposure_on_off"] = "Off"
 pg3_det.cam.stage_sigs["auto_exposure_auto_mode"] = "Manual"
@@ -92,7 +112,12 @@ pg3_det.cam.stage_sigs["trigger_delay_on_off"] = "Off"
 pg3_det.cam.stage_sigs["frame_rate_on_off"] = "Off"
 pg3_det.cam.stage_sigs["frame_rate_auto_mode"] = "Manual"
 pg3_det.read_attrs = ['hdf1']
+pg3_det.pva1.stage_sigs["blocking_callbacks"] = "No"
+del pg3_det.hdf1.stage_sigs["num_capture"]
 
+pg3_det.hdf1.ensure_nonblocking() 
+pg3_det.image.ensure_nonblocking() 
+pg3_det.pva1.ensure_nonblocking() 
 
 # note: convenience plans -- call these BEFORE taking the image
 # This value will appear in the attributes of the PVaccess PV
