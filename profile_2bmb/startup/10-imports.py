@@ -19,6 +19,7 @@ from ophyd import SingleTrigger, ImagePlugin, HDF5Plugin
 from ophyd import ADComponent
 from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
 from ophyd.areadetector.plugins import PluginBase
+import ophyd.status  # for the wait() function
 
 from bluesky import IllegalMessageSequence
 

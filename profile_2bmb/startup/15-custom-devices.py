@@ -104,19 +104,51 @@ class ApsPssShutter_old(Device):
         return status
 
 
-class MyOwnApsPssShutter(Device):
+class ApsPssShutterWithStatus(Device):
     """
-    doc string TBA
+    APS PSS shutter
+    
+    * APS PSS shutters have separate bit PVs for open and close
+    * set either bit, the shutter moves, and the bit resets a short time later
+    * a separate status PV tells if the shutter is open or closed
+    
+    USAGE:
+    
+        shutter_a = ApsPssShutterWithStatus("2bma:A_shutter", name="shutter")
+        
+        shutter_a.open()
+        shutter_a.close()
+        
+        or
+        
+        %mov shutter_a "open"
+        %mov shutter_a "close"
+        
+        or
+        
+        shutter_a.set("open")       # MUST be "open", not "Open"
+        shutter_a.set("close")
+        
+    When using the shutter in a plan, be sure to use `yield from`.
+
+        def in_a_plan(shutter):
+            yield from abs_set(shutter, "open", wait=True)
+            # do something
+            yield from abs_set(shutter, "close", wait=True)
+        
+        RE(in_a_plan(shutter_a))
+        
+    The strings accepted by `set()` are defined in attributes
+    (`open_str` and `close_str`).
     """
     open_bit = Component(EpicsSignal, ":open")
     close_bit = Component(EpicsSignal, ":close")
     delay_s = 1.2
-    busy = Signal(value=False, name="busy")
     pss_state = FormattedComponent(EpicsSignalRO, "{self.state_pv}")
 
     # strings the user will use
-    open_str = 'Open'
-    close_str = 'Close'
+    open_str = 'open'
+    close_str = 'close'
 
     # pss_state PV values from EPICS
     open_val = 1
@@ -126,9 +158,15 @@ class MyOwnApsPssShutter(Device):
         self.state_pv = state_pv
         super().__init__(prefix, *args, **kwargs)
 
+    def open(self, timeout=10):
+        ophyd.status.wait(self.set(self.open_str), timeout=timeout)
+
+    def close(self, timeout=10):
+        ophyd.status.wait(self.set(self.close_str), timeout=timeout)
+
     def set(self, value, **kwargs):
         # first, validate the input value
-        acceptables = (close_str, open_str)
+        acceptables = (self.close_str, self.open_str)
         if value not in acceptables:
             msg = "value should be one of " + " | ".join(acceptables)
             msg += " : received " + str(value)
@@ -150,7 +188,6 @@ class MyOwnApsPssShutter(Device):
             #value = enums[int(value)]
             value = int(value)
             if value == expected_value:
-                self._set_st = None
                 self.pss_state.clear_sub(shutter_cb)
                 working_status._finished()
         
@@ -158,36 +195,6 @@ class MyOwnApsPssShutter(Device):
         command_signal.set(1)
         return working_status
 
-shtr = MyOwnApsPssShutter("2bma:B_shutter", "PA:02BM:STA_B_SBS_OPEN_PL", name="shtr")
-
-# FIXME:
-"""
-In [34]: shtr.put("open")
----------------------------------------------------------------------------
-TypeError                                 Traceback (most recent call last)
-~/Apps/BlueSky/lib/python3.6/site-packages/ophyd/device.py in put(self, dev_t, **kwargs)
-   1167             try:
--> 1168                 dev_t = self._device_tuple(dev_t)
-   1169             except TypeError as ex:
-
-TypeError: __new__() missing 2 required positional arguments: 'close_bit' and 'pss_state'
-
-During handling of the above exception, another exception occurred:
-
-ValueError                                Traceback (most recent call last)
-<ipython-input-34-02c586605a10> in <module>()
-----> 1 shtr.put("open")
-
-~/Apps/BlueSky/lib/python3.6/site-packages/ophyd/device.py in put(self, dev_t, **kwargs)
-   1169             except TypeError as ex:
-   1170                 raise ValueError('{}\n\tDevice tuple fields: {}'
--> 1171                                  ''.format(ex, self._device_tuple._fields))
-   1172 
-   1173         for attr in self.component_names:
-
-ValueError: __new__() missing 2 required positional arguments: 'close_bit' and 'pss_state'
-	Device tuple fields: ('open_bit', 'close_bit', 'pss_state')
-"""
 
 class TaxiFlyScanDevice(Device):
     """
