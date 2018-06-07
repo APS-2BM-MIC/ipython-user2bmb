@@ -34,10 +34,11 @@ def append_wa_motor_list(*motorlist):
 # verbose messages for debugging.
 import logging
 # ophyd.logger.setLevel(logging.DEBUG)
-# logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig()
 
 
 # diagnostics
 from bluesky.utils import ts_msg_hook
-RE.msg_hook = ts_msg_hook
+#RE.msg_hook = ts_msg_hook
 from bluesky.simulators import summarize_plan
