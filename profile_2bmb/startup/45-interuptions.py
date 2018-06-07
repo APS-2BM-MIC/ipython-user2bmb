@@ -21,6 +21,8 @@ class PauseInterupt(SuspendBoolHigh):
                         loop.call_soon_threadsafe(cb)
                         # this a hack until we get refactor pushed upstream
                         self._SuspenderBase__make_event()
+                # super hack but gets the behavior Pete expects
+                self._ev.set(0)
             elif self._should_resume(value):
                 self._tripped = False
                 # this a hack until we get refactor pushed upstream
