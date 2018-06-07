@@ -126,8 +126,9 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     @bpp.run_decorator(md=_md)
     @bpp.finalize_decorator(cleanup)
     def _internal_tomo():
-        yield from bps.monitor(rotStage.user_readback, name="rotation")
-        yield from bps.monitor(det.image.array_counter, name="array_counter")
+        yield from bps.monitor(rotStage.user_readback, name="rotation_monitor")
+        yield from bps.monitor(det.image.array_counter, name="array_counter_monitor")
+        yield from bps.monitor(tomo_stage.x, name="tomo_stage_x_monitor")
 
         # prepare the camera and the HDF5 plugin to write data
         yield from bps.mv(
