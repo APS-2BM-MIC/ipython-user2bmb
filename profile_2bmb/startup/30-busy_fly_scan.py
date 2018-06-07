@@ -6,7 +6,6 @@ NUM_FLAT_FRAMES = 10
 NUM_DARK_FRAMES = 10
 NUM_TEST_FRAMES = 10
 ROT_STAGE_FAST_SPEED = 50
-SHUTTER_WAIT_TIME_SECONDS = 5
 
 
 class EnsemblePSOFlyDevice(TaxiFlyScanDevice):
@@ -54,8 +53,7 @@ def measure_darks(det, shutter, quantity):
     measure background of detector
     """
     yield from set_dark_frame()
-    yield from bps.abs_set(shutter, "close")
-    yield from bps.sleep(SHUTTER_WAIT_TIME_SECONDS)
+    yield from bps.mv(shutter, "close")
     yield from _acquire_n_frames(det, quantity)
 
 
@@ -65,9 +63,9 @@ def measure_flats(det, shutter, quantity, samStage, samPos):
     """
     priorPosition = samStage.position
     yield from set_white_frame()
-    yield from bps.mv(samStage, samPos)
-    yield from bps.abs_set(shutter, "open")
-    yield from bps.sleep(SHUTTER_WAIT_TIME_SECONDS)
+    yield from bps.mv(
+        samStage, samPos,
+        shutter, "open")
     yield from _acquire_n_frames(det, quantity)
     yield from bps.mv(samStage, priorPosition)
 
