@@ -104,7 +104,7 @@ class ApsPssShutter_old(Device):
         return status
 
 
-class new_ApsPssShutter(Device):
+class MyOwnApsPssShutter(Device):
     """
     doc string TBA
     """
@@ -112,11 +112,15 @@ class new_ApsPssShutter(Device):
     close_bit = Component(EpicsSignal, ":close")
     delay_s = 1.2
     busy = Signal(value=False, name="busy")
-    state = FormattedComponent(EpicsSignalRO, "{self.state_pv}")
+    pss_state = FormattedComponent(EpicsSignalRO, "{self.state_pv}")
 
     # strings the user will use
     open_str = 'Open'
     close_str = 'Close'
+
+    # pss_state PV values from EPICS
+    open_val = 1
+    close_val = 0
 
     def __init__(self, prefix, state_pv, *args, **kwargs):
         self.state_pv = state_pv
@@ -139,28 +143,51 @@ class new_ApsPssShutter(Device):
             self.close_str: self.close_val
         }[value]
 
-        status = DeviceStatus(self)
-        # TODO:
+        working_status = DeviceStatus(self)
         
         def shutter_cb(value, timestamp, **kwargs):
-            value = enums[int(value)]
+            # APS shutter state PVs do not define strings, use numbers
+            #value = enums[int(value)]
+            value = int(value)
             if value == expected_value:
                 self._set_st = None
-                self.state.clear_sub(shutter_cb)
-                status._finished()
-
-        @run_in_thread
-        def run_and_delay():
-            self.busy.put(True)
-            move_shutter()
-            # sleep, since we don't *know* when the shutter has moved
-            time.sleep(self.delay_s)
-            self.busy.put(False)
-            status._finished(success=True)
+                self.pss_state.clear_sub(shutter_cb)
+                working_status._finished()
         
-        yield from run_and_delay()
-        return status
+        self.pss_state.subscribe(shutter_cb)
+        command_signal.set(1)
+        return working_status
 
+shtr = MyOwnApsPssShutter("2bma:B_shutter", "PA:02BM:STA_B_SBS_OPEN_PL", name="shtr")
+
+# FIXME:
+"""
+In [34]: shtr.put("open")
+---------------------------------------------------------------------------
+TypeError                                 Traceback (most recent call last)
+~/Apps/BlueSky/lib/python3.6/site-packages/ophyd/device.py in put(self, dev_t, **kwargs)
+   1167             try:
+-> 1168                 dev_t = self._device_tuple(dev_t)
+   1169             except TypeError as ex:
+
+TypeError: __new__() missing 2 required positional arguments: 'close_bit' and 'pss_state'
+
+During handling of the above exception, another exception occurred:
+
+ValueError                                Traceback (most recent call last)
+<ipython-input-34-02c586605a10> in <module>()
+----> 1 shtr.put("open")
+
+~/Apps/BlueSky/lib/python3.6/site-packages/ophyd/device.py in put(self, dev_t, **kwargs)
+   1169             except TypeError as ex:
+   1170                 raise ValueError('{}\n\tDevice tuple fields: {}'
+-> 1171                                  ''.format(ex, self._device_tuple._fields))
+   1172 
+   1173         for attr in self.component_names:
+
+ValueError: __new__() missing 2 required positional arguments: 'close_bit' and 'pss_state'
+	Device tuple fields: ('open_bit', 'close_bit', 'pss_state')
+"""
 
 class TaxiFlyScanDevice(Device):
     """
