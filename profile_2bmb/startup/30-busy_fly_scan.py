@@ -2,6 +2,9 @@ print(__file__)
 
 """Aerotech Ensemble PSO scan"""
 
+import logging
+logger = logging.getLogger(os.path.split(__file__)[-1])
+
 NUM_FLAT_FRAMES = 10
 NUM_DARK_FRAMES = 10
 NUM_TEST_FRAMES = 10
@@ -85,6 +88,10 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     shutter = B_shutter
     
     acquire_time = 0.01
+    report_t0 = None
+    update_interval_s = 5.0     # during scans, print interim progress
+    update_poll_delay_s = 0.01
+
     stage_sigs = {}
     stage_sigs["det.cam"] = det.cam.stage_sigs
 
@@ -121,6 +128,38 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     det.cam.stage_sigs["trigger_polarity"] = "Low"
     det.cam.stage_sigs["image_mode"] = "Multiple"
     det.hdf1.stage_sigs["num_capture"] = numProjPerSweep  # TODO: + NUM_DARK_FRAMES + NUM_FLAT_FRAMES,
+
+    def _report_(t):
+        msg = "{:.2f}s - flying ".format(t)
+        msg += "  x = {:.4f}".format(tomo_stage.x.position)
+        msg += "  y = {:.4f}".format(tomo_stage.y.position)
+        msg += "  r = {:.4f}".format(tomo_stage.rotary.position)
+        msg += "  theta = {:.4f}".format(tomo_stage.rotary.position % 360)
+        msg += "  image # {}".format(det.cam.num_images_counter.value)
+        return msg
+
+    @run_in_thread
+    def progress_reporting():
+        logger.debug("progress_reporting is starting")
+        t = time.time()
+        startup = t + update_interval_s/2
+        while t < startup and pso.fly.value == 0:    # wait for flyscan to start
+            time.sleep(update_poll_delay_s)
+
+        logger.debug("progress_reporting: fly starts")
+        update_time = t = report_t0 = time.time()
+        while pso.fly.value == 1:
+            if t >= update_time:
+                update_time = t + update_interval_s
+                msg = _report_(t - report_t0)
+                print(msg)
+                logger.debug(msg)
+            time.sleep(update_poll_delay_s)
+            t = time.time()
+        msg = _report_(time.time() - report_t0)
+        print(msg)
+        logger.debug(msg)
+        logger.debug("{}s - progress_reporting is done".format(time.time()-report_t0))
 
     @bpp.stage_decorator(staged_device_list)
     @bpp.run_decorator(md=_md)
@@ -170,6 +209,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             det.cam.array_counter, 0,
         )
 
+        progress_reporting()
         yield from bps.mv(pso.taxi, "Taxi")
         logging.debug("after taxi")
 
@@ -188,6 +228,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.create(name='primary')
         yield from bps.read(det)
         yield from bps.save()
+        det.cam.stage_sigs = stage_sigs["det.cam"]
 
     return (yield from _internal_tomo())
 
@@ -202,5 +243,13 @@ A smaller half-circle scan with 1500 projections must be slower or
 the data handling drops frames:
 
     RE(tomo_scan(slewSpeed=.5))
+
+In the next scan, we plan to move tomo_stage.x by a small amount 
+(few microns) during the scan to challenge the reconstructionb
+software to correct for a shift of the sample's center position.
+Ideally, for sampling purposes, we'll make that shift manually
+(outside of BlueSky) about halfway through the scan.
+
+    RE(tomo_scan(slewSpeed=10, stop=24*360, numProjPerSweep=3011), interlace_plan="Tom & Pete", idea="Francesco's bump")        
 
 """

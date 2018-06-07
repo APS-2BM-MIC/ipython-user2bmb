@@ -5,7 +5,7 @@ print(__file__)
 from ophyd import PointGreyDetectorCam, ProcessPlugin
 
 HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona") + "/"
-HDF5_FILE_PATH = "/home/beams/USER2BMB/mona/%Y/%M/%d/"
+HDF5_FILE_PATH = "/home/beams/USER2BMB/mona/%Y/%m/%d/"
 #HDF5_FILE_PATH = "/local/data/mona/"
 
 # PVA plugin not staged enabled/disabled yet, be prepared
