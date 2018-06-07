@@ -108,6 +108,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             rotStage, 0.00,
             det.cam.trigger_mode, "Internal",
             det.cam.image_mode, "Continuous",
+            det.hdf1.enable, "Disable",
         )
         yield from bps.wait(group='shutter')
 
@@ -118,18 +119,22 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.monitor(rotStage.user_readback, name="rotation")
         yield from bps.monitor(det.image.array_counter, name="array_counter")
 
+        # prepare the camera and the HDF5 plugin to write data
+        yield from bps.mv(
+            det.cam.nd_attributes_file, "monaDetectorAttributes.xml",
+            det.cam.acquire_time, acquire_time,
+            det.hdf1.num_capture, numProjPerSweep,    # TODO: + NUM_DARK_FRAMES + NUM_FLAT_FRAMES,
+            det.hdf1.enable, "Enable",
+            det.hdf1.auto_save, "Yes",
+            det.hdf1.capture, "Start",
+        )
+
         # TODO: test before using!
         # yield from measure_darks(det, shutter, NUM_DARK_FRAMES)
         # yield from measure_flats(det, shutter, NUM_FLAT_FRAMES, samStage, samInPos + samOutDist)
 
         # do not touch shutter during development
         yield from bps.abs_set(shutter, "open", group="shutter")
-
-        yield from bps.mv(
-            det.cam.nd_attributes_file, "monaDetectorAttributes.xml",
-            det.cam.acquire_time, acquire_time,
-            det.hdf1.num_capture, numProjPerSweep    # + darks & flats
-        )
         yield from set_image_frame()
 
         yield from bps.stop(rotStage)
@@ -167,7 +172,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.wait(group='shutter')    # shutters are slooow, MUST be done now
         yield from set_image_frame()
         #yield from bps.trigger(det, group='fly')
-        yield from bps.abs_set(det.cam.acquire, 1)
+        # yield from bps.abs_set(det.cam.acquire, 1)
         yield from bps.abs_set(pso.fly, "Fly", group='fly')
         yield from bps.wait(group='fly')
         yield from bps.abs_set(det.cam.acquire, 0)
@@ -180,3 +185,17 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         #yield from bps.save()
 
     return (yield from _internal_tomo())
+
+"""
+This is the pseudo interlaced fly scan we ran 2018-06-06.
+24 rotations with prime number of projections (1511) so that none overlap.
+Rotation speed adjusted to ensure that data handling stream can keep up.
+
+    RE(tomo_scan(slewSpeed=50, stop=24*360, numProjPerSweep=1511))
+
+A smaller half-circle scan with 1500 projections must be slower or
+the data handling drops frames:
+
+    RE(tomo_scan(slewSpeed=1))
+
+"""

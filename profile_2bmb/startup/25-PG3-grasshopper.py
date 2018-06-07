@@ -81,7 +81,6 @@ pg3_det = MyPointGreyDetector(
 # TODO: configure pg3_det Image1 & PVA1 to use PROC1 output instead
 pg3_det.cam.stage_sigs["image_mode"] = "Continuous"
 pg3_det.cam.stage_sigs["array_counter"] = 0
-#pg3_det.image.stage_sigs["array_counter"] = 0
 pg3_det.cam.stage_sigs["gain"] = 0
 pg3_det.cam.stage_sigs["auto_exposure_on_off"] = "Off"
 pg3_det.cam.stage_sigs["auto_exposure_auto_mode"] = "Manual"
@@ -92,10 +91,7 @@ pg3_det.cam.stage_sigs["trigger_mode_auto_mode"] = "Manual"
 pg3_det.cam.stage_sigs["trigger_delay_on_off"] = "Off"
 pg3_det.cam.stage_sigs["frame_rate_on_off"] = "Off"
 pg3_det.cam.stage_sigs["frame_rate_auto_mode"] = "Manual"
-pg3_det.hdf1.stage_sigs["enable"] = "Enable"
-pg3_det.image.stage_sigs["enable"] = "Enable"
-pg3_det.pva1.stage_sigs["enable"] = "Enable"
-#pg3_det.process1.stage_sigs["enable"] = "Enable"
+pg3_det.read_attrs = ['hdf1']
 
 
 # note: convenience plans -- call these BEFORE taking the image
@@ -104,6 +100,7 @@ pg3_det.pva1.stage_sigs["enable"] = "Enable"
 
 def set_white_frame(*, det=None):
     det = det or pg3_det
+    #ophyd.status.wait(det.cam.frame_type.set("FlatField"))
     yield from bps.mv(det.cam.frame_type, "FlatField")
 
 def set_dark_frame(*, det=None):
