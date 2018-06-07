@@ -85,8 +85,10 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     shutter = B_shutter
     
     acquire_time = 0.01
+    stage_sigs = {}
+    stage_sigs["det.cam"] = det.cam.stage_sigs
 
-    staged_device_list = []
+    staged_device_list = [det]
     monitored_signals_list = [
         det.image.array_counter,
         rotStage.user_readback,
@@ -106,11 +108,19 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from motor_set_modulo(rotStage, 360.0)
         yield from bps.mv(
             rotStage, 0.00,
-            det.cam.trigger_mode, "Internal",
-            det.cam.image_mode, "Continuous",
-            det.hdf1.enable, "Disable",
+            #det.cam.trigger_mode, "Internal",
+            #det.cam.image_mode, "Continuous",
+            #det.hdf1.enable, "Disable",
+            #det.hdf1.capture, "Done",
         )
         yield from bps.wait(group='shutter')
+
+    det.cam.stage_sigs["num_images"] = numProjPerSweep
+    det.cam.stage_sigs["trigger_mode"] = "Overlapped"
+    det.cam.stage_sigs["trigger_source"] = "GPIO_0"
+    det.cam.stage_sigs["trigger_polarity"] = "Low"
+    det.cam.stage_sigs["image_mode"] = "Multiple"
+    det.hdf1.stage_sigs["num_capture"] = numProjPerSweep  # TODO: + NUM_DARK_FRAMES + NUM_FLAT_FRAMES,
 
     @bpp.stage_decorator(staged_device_list)
     @bpp.run_decorator(md=_md)
@@ -123,11 +133,10 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.mv(
             det.cam.nd_attributes_file, "monaDetectorAttributes.xml",
             det.cam.acquire_time, acquire_time,
-            det.hdf1.num_capture, numProjPerSweep,    # TODO: + NUM_DARK_FRAMES + NUM_FLAT_FRAMES,
             det.hdf1.enable, "Enable",
             det.hdf1.auto_save, "Yes",
-            det.hdf1.capture, "Start",
         )
+        #yield from bps.abs_set(det.hdf1.capture, "Capture")
 
         # TODO: test before using!
         # yield from measure_darks(det, shutter, NUM_DARK_FRAMES)
@@ -157,12 +166,9 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             pso.slew_speed, slewSpeed,
             rotStage.velocity, ROT_STAGE_FAST_SPEED,
             rotStage.acceleration, slewSpeed/accl,
-            det.cam.num_images, numProjPerSweep,
-            det.cam.trigger_mode, "Overlapped",
-            det.cam.trigger_source, "GPIO_0",
-            det.cam.trigger_polarity, "Low",
-            det.cam.image_mode, "Multiple",
+            det.cam.array_counter, 0,
         )
+
         yield from bps.mv(pso.taxi, "Taxi")
         logging.debug("after taxi")
 
@@ -171,18 +177,16 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.mv(rotStage.velocity, slewSpeed)
         yield from bps.wait(group='shutter')    # shutters are slooow, MUST be done now
         yield from set_image_frame()
-        #yield from bps.trigger(det, group='fly')
-        # yield from bps.abs_set(det.cam.acquire, 1)
+        yield from bps.trigger(det, group='fly')
         yield from bps.abs_set(pso.fly, "Fly", group='fly')
         yield from bps.wait(group='fly')
-        yield from bps.abs_set(det.cam.acquire, 0)
+        #yield from bps.abs_set(det.cam.acquire, 0)
         logging.debug("after fly")
-        # return rotStage to standard
 
         # read the camera
-        #yield from bps.create(name='primary')
-        #yield from bps.read(det)
-        #yield from bps.save()
+        yield from bps.create(name='primary')
+        yield from bps.read(det)
+        yield from bps.save()
 
     return (yield from _internal_tomo())
 
@@ -196,6 +200,6 @@ Rotation speed adjusted to ensure that data handling stream can keep up.
 A smaller half-circle scan with 1500 projections must be slower or
 the data handling drops frames:
 
-    RE(tomo_scan(slewSpeed=1))
+    RE(tomo_scan(slewSpeed=.5))
 
 """
