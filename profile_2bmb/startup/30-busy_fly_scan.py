@@ -85,6 +85,8 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     det = pg3_det
     rotStage = tomo_stage.rotary
     shutter = B_shutter
+    
+    acquire_time = 0.01
 
     staged_device_list = []
     monitored_signals_list = [
@@ -103,7 +105,12 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         except RuntimeError as exc:
             print(exc)
         yield from bps.mv(rotStage.velocity, ROT_STAGE_FAST_SPEED)
-        yield from bps.mv(rotStage, 0.00)
+        yield from motor_set_modulo(rotStage, 360.0)
+        yield from bps.mv(
+            rotStage, 0.00,
+            det.cam.trigger_mode, "Internal",
+            det.cam.image_mode, "Continuous",
+        )
         yield from bps.wait(group='shutter')
 
     @bpp.stage_decorator(staged_device_list)
@@ -122,6 +129,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
 
         yield from bps.mv(
             det.cam.nd_attributes_file, "monaDetectorAttributes.xml",
+            det.cam.acquire_time, acquire_time,
             det.hdf1.num_capture, numProjPerSweep    # + darks & flats
         )
         yield from set_image_frame()
