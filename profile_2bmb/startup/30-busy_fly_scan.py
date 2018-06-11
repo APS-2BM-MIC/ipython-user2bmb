@@ -25,7 +25,6 @@ class EnsemblePSOFlyDevice(TaxiFlyScanDevice):
     # detector_setup_time = Component(EpicsSignal, "detSetupTime")
     # pulse_type = Component(EpicsSignal, "pulseType")
 
-    # TODO: complete
     # https://github.com/prjemian/ipython_mintvm/blob/master/profile_bluesky/startup/notebooks/busy_fly_scan.ipynb
     scan_control = Component(EpicsSignal, "scanControl")
 
