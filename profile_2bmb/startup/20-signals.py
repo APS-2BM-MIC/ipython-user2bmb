@@ -43,10 +43,9 @@ class APS_Operator_Messages_Device(Device):
     operators = Component(EpicsSignalRO, "OPS:message1", string=True)
     floor_coordinator = Component(EpicsSignalRO, "OPS:message2", string=True)
     fll_pattern = Component(EpicsSignalRO, "OPS:message3", string=True)
-    # message4: status?
-    message4 = Component(EpicsSignalRO, "OPS:message4", string=True)
-    last_trip_msg = Component(EpicsSignalRO, "OPS:message5", string=True)
-    # message6: info?
+    last_problem_message = Component(EpicsSignalRO, "OPS:message4", string=True)
+    last_trip_message = Component(EpicsSignalRO, "OPS:message5", string=True)
+    # messages 6-8: meaning?
     message6 = Component(EpicsSignalRO, "OPS:message6", string=True)
     message7 = Component(EpicsSignalRO, "OPS:message7", string=True)
     message8 = Component(EpicsSignalRO, "OPS:message8", string=True)
