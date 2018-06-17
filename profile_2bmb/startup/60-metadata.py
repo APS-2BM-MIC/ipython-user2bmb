@@ -5,7 +5,16 @@ import APS_BlueSky_tools
 # Set up default metadata
 
 
-def get_ipython_profile_name():
+@property
+def ipython_profile_name():
+    """
+    return the name of the current ipython profile or `None`
+    
+    Example (add to default RunEngine metadata)::
+
+        RE.md['ipython_profile'] = str(ipython_profile_name)
+
+"""
     import IPython.paths
     import IPython.core.profileapp
     import IPython.core.profiledir
@@ -15,12 +24,12 @@ def get_ipython_profile_name():
     for p in IPython.core.profileapp.list_profiles_in(path):
         pd = ipd.find_profile_dir_by_name(path, p)
         if os.path.dirname(__file__) == pd.startup_dir:
-            print("using profile: ", p)
             return p
 
 
 RE.md['beamline_id'] = '2-BM tomography'
-RE.md['ipython_profile'] = str(get_ipython_profile_name())
+RE.md['ipython_profile'] = str(ipython_profile_name)
+print("using profile: " + RE.md['ipython_profile'])
 
 try:
     # IOC is off 2018-05-08 for switchgear maintenance
