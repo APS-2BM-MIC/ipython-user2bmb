@@ -14,7 +14,7 @@ def ipython_profile_name():
 
         RE.md['ipython_profile'] = str(ipython_profile_name)
 
-"""
+    """
     import IPython.paths
     import IPython.core.profileapp
     import IPython.core.profiledir
