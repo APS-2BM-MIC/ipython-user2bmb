@@ -28,7 +28,9 @@ import bluesky.plan_stubs as bps
 import bluesky.preprocessors as bpp
 
 from APS_BlueSky_tools.devices import userCalcsDevice
-from APS_BlueSky_tools.devices import ApsPssShutter
+from APS_BlueSky_tools.devices import ApsMachineParametersDevice
+from APS_BlueSky_tools.devices import ApsPssShutterWithStatus
 from APS_BlueSky_tools.devices import EpicsMotorShutter
 from APS_BlueSky_tools.devices import EpicsMotorWithDial
 from APS_BlueSky_tools.devices import EpicsMotorWithServo
+from APS_BlueSky_tools.plans import run_in_thread

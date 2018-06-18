@@ -39,36 +39,11 @@ except Exception as _exc:
     print(_exc)
 
 
-class APS_Operator_Messages_Device(Device):
-    operators = Component(EpicsSignalRO, "OPS:message1", string=True)
-    floor_coordinator = Component(EpicsSignalRO, "OPS:message2", string=True)
-    fll_pattern = Component(EpicsSignalRO, "OPS:message3", string=True)
-    last_problem_message = Component(EpicsSignalRO, "OPS:message4", string=True)
-    last_trip_message = Component(EpicsSignalRO, "OPS:message5", string=True)
-    # messages 6-8: meaning?
-    message6 = Component(EpicsSignalRO, "OPS:message6", string=True)
-    message7 = Component(EpicsSignalRO, "OPS:message7", string=True)
-    message8 = Component(EpicsSignalRO, "OPS:message8", string=True)
-
-
-class APS_Machine_Parameters_Device(Device):
-    current = Component(EpicsSignalRO, "S:SRcurrentAI")
-    lifetime = Component(EpicsSignalRO, "S:SRlifeTimeHrsCC")
-    machine_status = Component(EpicsSignalRO, "S:DesiredMode", string=True)
-    operating_mode = Component(EpicsSignalRO, "S:ActualMode", string=True)
-    shutter_permit = Component(EpicsSignalRO, "ACIS:ShutterPermit", string=True)
-    fill_number = Component(EpicsSignalRO, "S:FillNumber")
-    orbit_correction = Component(EpicsSignalRO, "S:OrbitCorrection:CC")
-    global_feedback = Component(EpicsSignalRO, "SRFB:GBL:LoopStatusBI", string=True)
-    global_feedback_h = Component(EpicsSignalRO, "SRFB:GBL:HLoopStatusBI", string=True)
-    global_feedback_v = Component(EpicsSignalRO, "SRFB:GBL:VLoopStatusBI", string=True)
-    operator_messages = Component(APS_Operator_Messages_Device)
-
-
-APS = APS_Machine_Parameters_Device(name="APS")
+APS = ApsMachineParametersDevice(name="APS")
 aps_current = APS.current
 
 sd.baseline.append(APS)
+#sd.monitors.append(aps_current)
 
 
 class DualPf4FilterBox(Device):
