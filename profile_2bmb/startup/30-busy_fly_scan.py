@@ -39,36 +39,44 @@ def motor_set_modulo(motor, modulo):
         yield from bps.mv(motor.set_use_switch, 0)
 
 
-def _acquire_n_frames(det, quantity):
-    """internal: for measuring n darks or flats"""
-    yield from bps.mv(det.cam.acquire, 0)
-    det.cam.stage_sigs["trigger_mode"] = "Internal"
-    det.cam.stage_sigs["image_mode"] = "Multiple"
-    det.cam.stage_sigs["num_images"] = quantity
-    #for image_number in range(quantity):
-    #    yield from bps.trigger(det.cam.acquire)
-    yield from bps.trigger(det.cam.acquire)
+def wait_for_hdf5_captured(det, expected):
+    while det.hdf1.num_captured.value < expected:
+        yield from bps.sleep(0.01)
 
 
-def measure_darks(det, shutter, quantity):
+def measure_darks(det, shutter, expected, quantity):
     """
     measure background of detector
+    
+    det : area detector object
+    shutter : shutter object
+    quantity : number of frames to acquire
     """
-    yield from set_dark_frame()
-    yield from bps.mv(shutter, "close")
-    yield from _acquire_n_frames(det, quantity)
+    yield from bps.mv(
+        shutter, "close",
+        det.cam.frame_type, 1,  # dark
+        det.cam.num_images, quantity,
+    )
+
+    yield from bps.trigger(det)
+    wait_for_hdf5_captured(det, expected)
 
 
-def measure_flats(det, shutter, quantity, samStage, samPos):
+def measure_flats(det, shutter, quantity, expected, samStage, samPos):
     """
     measure response of detector to empty beam
     """
     priorPosition = samStage.position
-    yield from set_white_frame()
     yield from bps.mv(
+        shutter, "open",
         samStage, samPos,
-        shutter, "open")
-    yield from _acquire_n_frames(det, quantity)
+        det.cam.frame_type, 2,  # white
+        det.cam.num_images, quantity,
+    )
+
+    yield from bps.trigger(det)
+    wait_for_hdf5_captured(det, expected)
+
     yield from bps.mv(samStage, priorPosition)
 
 
@@ -175,15 +183,19 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             det.hdf1.enable, "Enable",
             det.hdf1.auto_save, "Yes",
         )
-        #yield from bps.abs_set(det.hdf1.capture, "Capture")
 
-        # TODO: test before using!
-        # yield from measure_darks(det, shutter, NUM_DARK_FRAMES)
-        # yield from measure_flats(det, shutter, NUM_FLAT_FRAMES, samStage, samInPos + samOutDist)
+        yield from measure_darks(det, shutter, NUM_DARK_FRAMES, NUM_DARK_FRAMES)
 
-        # do not touch shutter during development
+        yield from measure_flats(
+            det, 
+            shutter, 
+            NUM_FLAT_FRAMES, 
+            NUM_DARK_FRAMES + NUM_FLAT_FRAMES,
+            samStage, samInPos + samOutDist
+        )
+
+        # !!! moves the shutter !!!
         yield from bps.abs_set(shutter, "open", group="shutter")
-        yield from set_image_frame()
 
         yield from bps.stop(rotStage)
         yield from motor_set_modulo(rotStage, 360.0)
@@ -216,7 +228,11 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         logging.debug("before fly")
         yield from bps.mv(rotStage.velocity, slewSpeed)
         yield from bps.wait(group='shutter')    # shutters are slooow, MUST be done now
-        yield from set_image_frame()
+
+        yield from bps.mv(
+            det.cam.frame_type, 0,      # normal images
+            det.cam.num_images, num,
+        )
         yield from bps.trigger(det, group='fly')
         yield from bps.abs_set(pso.fly, "Fly", group='fly')
         yield from bps.wait(group='fly')
