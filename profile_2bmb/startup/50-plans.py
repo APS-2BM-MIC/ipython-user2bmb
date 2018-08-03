@@ -3,8 +3,7 @@ print(__file__)
 """plans"""
 
 
-def demo_of_issue_27(*args, darks=1, whites=1, images=1):
-    det = pg3_det
+def demo_of_issue_27(det, darks=1, whites=1, images=1):
 
     def shoot(fr_type, num=1, expected=None):
         expected = expected or num
