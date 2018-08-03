@@ -13,7 +13,7 @@ USER2BMB_ROOT_DIR = "/local/user2bmb"
 # HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona") + "/"
 # HDF5_FILE_PATH = "/home/beams/USER2BMB/mona/%Y/%m/%d/"
 # HDF5_FILE_PATH = "/local/data/mona/"
-HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona", "/%Y/%m/%d") + "/"
+HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona", "%Y/%m/%d") + "/"
 
 
 # PVA plugin not staged enabled/disabled yet, be prepared
@@ -58,7 +58,7 @@ class MyPointGreyDetector(SingleTrigger, AreaDetector):
     
     cam = ADComponent(MyPointGreyDetectorCam, "cam1:")
     image = ADComponent(ImagePlugin, "image1:")
-    hdf1 = ADComponent( # FIXME:
+    hdf1 = ADComponent(
         MyHDF5Plugin, 
         suffix="HDF1:",
         root='/',                               # for databroker
@@ -101,6 +101,29 @@ example setup for the PVA plugin (from FileStoreTIFFSquashing)
                                 ])
 
 """
+
+
+def configure_flats_darks_images(det_pv):
+    """
+    configure so frames are identified & handled by type
+    
+    use PyEpics as lower-level interface
+    """
+    db = dict(
+        ZR = "/exchange/data",
+        ON = "/exchange/data_dark",
+        TW = "/exchange/data_white",
+    )
+    for k, v in db.items():
+        pv = "{}cam1:FrameType.{}ST".format(det_pv, k)
+        epics.caput(pv, v)
+        pv = "{}cam1:FrameType_RBV.{}ST".format(det_pv, k)
+        epics.caput(pv, v)
+
+
+# call this BEFORE creating detector instance
+configure_flats_darks_images(EPICS_PV_prefix["PG3 PointGrey Grasshopper3"])
+
 
 pg3_det = MyPointGreyDetector(
     EPICS_PV_prefix["PG3 PointGrey Grasshopper3"], 
