@@ -103,22 +103,28 @@ example setup for the PVA plugin (from FileStoreTIFFSquashing)
 """
 
 
-def configure_flats_darks_images(det_pv):
+def configure_flats_darks_images(prefix):
     """
     configure so frames are identified & handled by type
     
+    prefix (str) : EPICS PV prefix of area detector, such as "13SIM1:"
+    
     use PyEpics as lower-level interface
     """
-    db = dict(
-        ZR = "/exchange/data",
-        ON = "/exchange/data_dark",
-        TW = "/exchange/data_white",
+    #db = dict(      # NeXus (typical locations)
+    #    ZRST = "/entry/data/data",
+    #    ONST = "/entry/data/dark",
+    #    TWST = "/entry/data/white",
+    #)
+    db = dict(      # APS Data Exchange
+        ZRST = "/exchange/data",
+        ONST = "/exchange/data_dark",
+        TWST = "/exchange/data_white",
     )
-    for k, v in db.items():
-        pv = "{}cam1:FrameType.{}ST".format(det_pv, k)
-        epics.caput(pv, v)
-        pv = "{}cam1:FrameType_RBV.{}ST".format(det_pv, k)
-        epics.caput(pv, v)
+    template = "{}cam1:FrameType{}.{}"
+    for field, value in db.items():
+        epics.caput(template.format(prefix, "", field), v)
+        epics.caput(template.format(prefix, "_RBV", field), value)
 
 
 # call this BEFORE creating detector instance
