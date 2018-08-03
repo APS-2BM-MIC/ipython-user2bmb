@@ -3,10 +3,13 @@ print(__file__)
 """PG3 PointGrey Grasshopper3 detector"""
 
 from ophyd import PointGreyDetectorCam, ProcessPlugin
+from ophyd.status import Status
 
-HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona") + "/"
-HDF5_FILE_PATH = "/home/beams/USER2BMB/mona/%Y/%m/%d/"
-#HDF5_FILE_PATH = "/local/data/mona/"
+# HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona") + "/"
+# HDF5_FILE_PATH = "/home/beams/USER2BMB/mona/%Y/%m/%d/"
+# HDF5_FILE_PATH = "/local/data/mona/"
+HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona", "/%Y/%m/%d") + "/"
+
 
 # PVA plugin not staged enabled/disabled yet, be prepared
 class MyPvaPlugin(PluginBase):
@@ -43,7 +46,6 @@ class MyPointGreyDetectorCam(PointGreyDetectorCam):
     frame_rate_auto_mode = ADComponent(EpicsSignalWithRBV, "FrameRateAutoMode")
     # there are other PG3 properties, ignore them for now
 
-from ophyd.status import Status
 
 class MyPointGreyDetector(SingleTrigger, AreaDetector):
     """PointGrey Grasshopper3 detector as used by 2-BM-B tomography"""

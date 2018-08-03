@@ -8,13 +8,6 @@ EPICS_PV_prefix = {}
 # such as this area detector
 EPICS_PV_prefix["PG3 PointGrey Grasshopper3"] = "2bmbPG3:"
 
-#magic_config["PG3 PointGrey Grasshopper3"] = (PGClass,
-#                                              {'name': 'pg_dt', 'prefix': '2bmbPG3:'},)
-
-#for klass, cfg in magic_config.values():
-#    ip.user_ns[cfg['name']] = klass(**cfg)
-
-
 # for area detector file plugins (& other)
 USER2BMB_ROOT_DIR = "/local/user2bma"
 
