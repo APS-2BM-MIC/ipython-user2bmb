@@ -84,7 +84,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     pso = psofly
     det = pg3_det
     rotStage = tomo_stage.rotary
-    shutter = B_shutter
+    shutter = A_shutter
     
     acquire_time = 0.01
     report_t0 = None

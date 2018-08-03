@@ -6,13 +6,9 @@ from ophyd import MotorBundle
 
 
 class TomoStage(MotorBundle):
-    rotary = Component(EpicsMotor, "2bmb:m100", labels=("theta", "tomo"))
-    x = Component(EpicsMotor, "2bmb:m63", labels=("tomo",))
-    y = Component(EpicsMotor, "2bmb:m57", labels=("tomo",))
-    #pitch = Component(EpicsMotor, "2bmb:m54", labels=("tomo",))
-    #roll = Component(EpicsMotor, "2bmb:m53", labels=("tomo",))
-    changer_status = Component(EpicsSignalRO, "2bmb:Begin_Scan")
-    position_status = Component(EpicsSignalRO, "2bmb:Sample_Stage_Position")
+    rotary = Component(EpicsMotor, "2bma:m82", labels=("theta", "tomo"))
+    x = Component(EpicsMotor, "2bma:m49", labels=("tomo",))
+    y = Component(EpicsMotor, "2bma:m20", labels=("tomo",))
 
 
 tomo_stage = TomoStage(name="tomo_stage")

@@ -16,7 +16,7 @@ EPICS_PV_prefix["PG3 PointGrey Grasshopper3"] = "2bmbPG3:"
 
 
 # for area detector file plugins (& other)
-USER2BMB_ROOT_DIR = "/local/user2bmb"
+USER2BMB_ROOT_DIR = "/local/user2bma"
 
 
 class MonaModuleSignals(Device):
