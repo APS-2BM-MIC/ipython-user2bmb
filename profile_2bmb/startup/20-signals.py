@@ -14,11 +14,11 @@ mona = MonaModuleSignals(name="mona")
 
 
 try:
-    A_shutter = ApsPssShutterWithStatus(
+    A_shutter = APS_devices.ApsPssShutterWithStatus(
         "2bma:A_shutter", 
         "PA:02BM:STA_A_FES_OPEN_PL", 
         name="A_shutter")
-    B_shutter = ApsPssShutterWithStatus(
+    B_shutter = APS_devices.ApsPssShutterWithStatus(
         "2bma:B_shutter", 
         "PA:02BM:STA_B_SBS_OPEN_PL", 
         name="B_shutter")
@@ -26,7 +26,7 @@ except Exception as _exc:
     print(_exc)
 
 
-APS = ApsMachineParametersDevice(name="APS")
+APS = APS_devices.ApsMachineParametersDevice(name="APS")
 aps_current = APS.current
 
 sd.baseline.append(APS)

@@ -137,7 +137,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         msg += "  image # {}".format(det.cam.num_images_counter.value)
         return msg
 
-    @run_in_thread
+    @APS_plans.run_in_thread
     def progress_reporting():
         logger.debug("progress_reporting is starting")
         t = time.time()

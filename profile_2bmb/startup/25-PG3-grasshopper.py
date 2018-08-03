@@ -128,7 +128,7 @@ def configure_flats_darks_images(prefix):
 
 
 # call this BEFORE creating detector instance
-configure_flats_darks_images(EPICS_PV_prefix["PG3 PointGrey Grasshopper3"])
+# configure_flats_darks_images(EPICS_PV_prefix["PG3 PointGrey Grasshopper3"])
 
 
 pg3_det = MyPointGreyDetector(
