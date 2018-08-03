@@ -4,9 +4,17 @@ print(__file__)
 
 from ophyd import PointGreyDetectorCam, ProcessPlugin
 
-HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona") + "/"
-HDF5_FILE_PATH = "/home/beams/USER2BMB/mona/%Y/%m/%d/"
-#HDF5_FILE_PATH = "/local/data/mona/"
+# such as this area detector
+EPICS_PV_prefix["PG3 PointGrey Grasshopper3"] = "2bmbPG3:"
+
+# for area detector file plugins (& other)
+USER2BMB_ROOT_DIR = "/local/user2bmb"
+
+# HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona") + "/"
+# HDF5_FILE_PATH = "/home/beams/USER2BMB/mona/%Y/%m/%d/"
+# HDF5_FILE_PATH = "/local/data/mona/"
+HDF5_FILE_PATH = os.path.join(USER2BMB_ROOT_DIR, "mona", "/%Y/%m/%d") + "/"
+
 
 # PVA plugin not staged enabled/disabled yet, be prepared
 class MyPvaPlugin(PluginBase):

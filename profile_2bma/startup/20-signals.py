@@ -5,12 +5,6 @@ print(__file__)
 """short, recognizable names for controls"""
 EPICS_PV_prefix = {}
 
-# such as this area detector
-EPICS_PV_prefix["PG3 PointGrey Grasshopper3"] = "2bmbPG3:"
-
-# for area detector file plugins (& other)
-USER2BMB_ROOT_DIR = "/local/user2bma"
-
 
 class MonaModuleSignals(Device):
     # per ./mona.db
