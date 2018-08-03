@@ -193,20 +193,3 @@ del pg3_det.hdf1.stage_sigs["num_capture"]
 pg3_det.hdf1.ensure_nonblocking() 
 pg3_det.image.ensure_nonblocking() 
 pg3_det.pva1.ensure_nonblocking() 
-
-# note: convenience plans -- call these BEFORE taking the image
-# This value will appear in the attributes of the PVaccess PV
-# with name of `SaveDest`
-
-def set_white_frame(*, det=None):
-    det = det or pg3_det
-    #ophyd.status.wait(det.cam.frame_type.set("FlatField"))
-    yield from bps.mv(det.cam.frame_type, "FlatField")
-
-def set_dark_frame(*, det=None):
-    det = det or pg3_det
-    yield from bps.mv(det.cam.frame_type, "Background")
-
-def set_image_frame(*, det=None):
-    det = det or pg3_det
-    yield from bps.mv(det.cam.frame_type, "Normal")
