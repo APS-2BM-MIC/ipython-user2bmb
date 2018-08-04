@@ -278,6 +278,7 @@ A smaller half-circle scan with 1500 projections must be slower or
 the data handling drops frames:
 
     RE(tomo_scan(slewSpeed=.5))
+    RE(tomo_scan(slewSpeed=5, numProjPerSweep=151))
 
 In the next scan, we plan to move tomo_stage.x by a small amount 
 (few microns) during the scan to challenge the reconstructionb
@@ -286,5 +287,7 @@ Ideally, for sampling purposes, we'll make that shift manually
 (outside of BlueSky) about halfway through the scan.
 
     RE(tomo_scan(slewSpeed=10, stop=24*360, numProjPerSweep=3011), interlace_plan="Tom & Pete", idea="Francesco's bump")        
+
+    RE(tomo_scan(slewSpeed=10, stop=24*360, numProjPerSweep=3011), interlace_plan="Tom & Pete", sample="wood stick")        
 
 """
