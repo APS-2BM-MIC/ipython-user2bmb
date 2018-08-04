@@ -10,6 +10,8 @@ NUM_DARK_FRAMES = 10
 NUM_TEST_FRAMES = 10
 ROT_STAGE_FAST_SPEED = 50
 
+MEASURE_DARKS_AND_FLATS = True
+
 
 class EnsemblePSOFlyDevice(TaxiFlyScanDevice):
     motor_pv_name = Component(EpicsSignalRO, "motorName")
@@ -25,7 +27,6 @@ class EnsemblePSOFlyDevice(TaxiFlyScanDevice):
     # detector_setup_time = Component(EpicsSignal, "detSetupTime")
     # pulse_type = Component(EpicsSignal, "pulseType")
 
-    # https://github.com/prjemian/ipython_mintvm/blob/master/profile_bluesky/startup/notebooks/busy_fly_scan.ipynb
     scan_control = Component(EpicsSignal, "scanControl")
 
 
@@ -54,12 +55,14 @@ def measure_darks(det, shutter, expected, quantity):
     """
     yield from bps.mv(
         shutter, "close",
+        det.cam.trigger_mode, "Internal",
         det.cam.frame_type, 1,  # dark
         det.cam.num_images, quantity,
     )
+    print("{} Darks, Shutter {}".format(quantity, shutter.pss_state.get(as_string=True)))
 
     yield from bps.trigger(det)
-    wait_for_hdf5_captured(det, expected)
+    yield from wait_for_hdf5_captured(det, expected)
 
 
 def measure_flats(det, shutter, quantity, expected, samStage, samPos):
@@ -67,15 +70,18 @@ def measure_flats(det, shutter, quantity, expected, samStage, samPos):
     measure response of detector to empty beam
     """
     priorPosition = samStage.position
+    yield from bps.sleep(1)     # arbitrary, shutter won't move without it
     yield from bps.mv(
         shutter, "open",
         samStage, samPos,
+        det.cam.trigger_mode, "Internal",
         det.cam.frame_type, 2,  # white
         det.cam.num_images, quantity,
     )
+    print("{} Flats, Shutter {}".format(quantity, shutter.pss_state.get(as_string=True)))
 
     yield from bps.trigger(det)
-    wait_for_hdf5_captured(det, expected)
+    yield from wait_for_hdf5_captured(det, expected)
 
     yield from bps.mv(samStage, priorPosition)
 
@@ -89,6 +95,11 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     _md["APS_storage_ring_current,mA"] = aps_current.value
     _md["datetime_plan_started"] = str(datetime.now())
 
+    # assigns darks, whites, images to proper datasets in HDF5 file
+    AD_setup_FrameType(
+        EPICS_PV_prefix["PG3 PointGrey Grasshopper3"], 
+        scheme="DataExchange"
+    )
     pso = psofly
     det = pg3_det
     rotStage = tomo_stage.rotary
@@ -134,7 +145,11 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     det.cam.stage_sigs["trigger_source"] = "GPIO_0"
     det.cam.stage_sigs["trigger_polarity"] = "Low"
     det.cam.stage_sigs["image_mode"] = "Multiple"
-    det.hdf1.stage_sigs["num_capture"] = numProjPerSweep  # TODO: + NUM_DARK_FRAMES + NUM_FLAT_FRAMES,
+
+    total_number_frames = numProjPerSweep
+    if MEASURE_DARKS_AND_FLATS:
+        total_number_frames += NUM_DARK_FRAMES + NUM_FLAT_FRAMES
+    # yield from bps.mv(det.hdf1.num_capture, total_number_frames)
 
     def _report_(t):
         msg = "{:.2f}s - flying ".format(t)
@@ -182,17 +197,20 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             det.cam.acquire_time, acquire_time,
             det.hdf1.enable, "Enable",
             det.hdf1.auto_save, "Yes",
+            det.cam.array_counter, 0,
+            det.hdf1.num_capture, total_number_frames,
         )
 
-        yield from measure_darks(det, shutter, NUM_DARK_FRAMES, NUM_DARK_FRAMES)
+        if MEASURE_DARKS_AND_FLATS:
+            yield from measure_darks(det, shutter, NUM_DARK_FRAMES, NUM_DARK_FRAMES)
 
-        yield from measure_flats(
-            det, 
-            shutter, 
-            NUM_FLAT_FRAMES, 
-            NUM_DARK_FRAMES + NUM_FLAT_FRAMES,
-            samStage, samInPos + samOutDist
-        )
+            yield from measure_flats(
+                det, 
+                shutter, 
+                NUM_FLAT_FRAMES, 
+                NUM_DARK_FRAMES + NUM_FLAT_FRAMES,
+                samStage, samInPos + samOutDist
+            )
 
         # !!! moves the shutter !!!
         yield from bps.abs_set(shutter, "open", group="shutter")
@@ -209,15 +227,16 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
 
         # back off to the taxi point (back-off distance before fly start)
         logging.debug("before taxi")
+        _delta = 1.0*(stop-start)/numProjPerSweep
+        _delta = float("%.4f" % _delta) # oooo wow! this cost us some time.  Why?
         yield from bps.mv(
             pso.start, start,
             pso.end, stop,
             pso.scan_control, "Standard",
-            pso.scan_delta, 1.0*(stop-start)/numProjPerSweep,
+            pso.scan_delta, _delta,
             pso.slew_speed, slewSpeed,
             rotStage.velocity, ROT_STAGE_FAST_SPEED,
             rotStage.acceleration, slewSpeed/accl,
-            det.cam.array_counter, 0,
         )
 
         progress_reporting()
@@ -231,7 +250,8 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
 
         yield from bps.mv(
             det.cam.frame_type, 0,      # normal images
-            det.cam.num_images, num,
+            det.cam.num_images, numProjPerSweep,
+            det.cam.trigger_mode, "Overlapped",
         )
         yield from bps.trigger(det, group='fly')
         yield from bps.abs_set(pso.fly, "Fly", group='fly')

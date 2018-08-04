@@ -10,6 +10,7 @@ def demo_of_issue_27(det, darks=1, whites=1, images=1):
         yield from bps.mv(
             det.cam.frame_type, fr_type,
             det.cam.num_images, num,
+            det.cam.trigger_mode, "Internal",
         )
         yield from bps.trigger(det)
         while det.hdf1.num_captured.value < expected:
@@ -19,6 +20,7 @@ def demo_of_issue_27(det, darks=1, whites=1, images=1):
         det.hdf1.num_capture, darks+whites+images,
         det.hdf1.compression, "zlib",
     )
+    print("det.hdf1.num_capture", det.hdf1.num_capture.value)
     yield from bps.stage(det)
 
     print("%d dark frames" % darks)
@@ -35,10 +37,10 @@ def demo_of_issue_27(det, darks=1, whites=1, images=1):
     while det.hdf1.capture.value != 0:
         yield from bps.sleep(0.01)
 
+    yield from bps.unstage(det)
+
     yield from bps.mv(
         det.hdf1.num_capture, 1,
         det.cam.num_images, 1,
         det.hdf1.compression, "None",
     )
-
-    yield from bps.unstage(det)
