@@ -40,6 +40,26 @@ def motor_set_modulo(motor, modulo):
         yield from bps.mv(motor.set_use_switch, 0)
 
 
+@APS_plans.run_in_thread
+def addThetaArray(hdf5_file_name, start, stop, num):
+    if not os.path.exists(hdf5_file_name):
+        print("Could not find {}".format(hdf5_file_name))
+        print("Cannot add /exchange/theta")
+        return
+    
+    print("Adding /exchange/theta to {}".format(hdf5_file_name))
+
+    theta = np.linspace(start, stop, num)
+    # theta = theta % 360
+
+    with h5py.File(hdf5_file_name, "r+") as fp:
+        # R/W, file must exist or fail
+        exchange = fp["/exchange"]
+        ds = exchange.create_dataset("theta", data=theta)
+        ds.attrs["units"] = "degrees"
+        ds.attrs["description"] = "computed rotation stage angle"
+
+
 def wait_for_hdf5_captured(det, expected):
     while det.hdf1.num_captured.value < expected:
         yield from bps.sleep(0.01)
@@ -86,7 +106,7 @@ def measure_flats(det, shutter, quantity, expected, samStage, samPos):
     yield from bps.mv(samStage, priorPosition)
 
 
-def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, samInPos=0, samOutDist=-3, md=None):
+def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, samInPos=0, samOutDist=-3, acquire_time=0.01, md=None):
     """
     standard tomography fly scan with BlueSky
     """
@@ -105,7 +125,6 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     rotStage = tomo_stage.rotary
     shutter = B_shutter
     
-    acquire_time = 0.01
     report_t0 = None
     update_interval_s = 5.0     # during scans, print interim progress
     update_poll_delay_s = 0.01
@@ -264,6 +283,9 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.read(det)
         yield from bps.save()
         det.cam.stage_sigs = stage_sigs["det.cam"]
+        
+        hdf5_file_name = det.hdf1.full_file_name.value
+        addThetaArray(hdf5_file_name, start, stop, numProjPerSweep)
 
     return (yield from _internal_tomo())
 
@@ -288,6 +310,18 @@ Ideally, for sampling purposes, we'll make that shift manually
 
     RE(tomo_scan(slewSpeed=10, stop=24*360, numProjPerSweep=3011), interlace_plan="Tom & Pete", idea="Francesco's bump")        
 
-    RE(tomo_scan(slewSpeed=10, stop=24*360, numProjPerSweep=3011), interlace_plan="Tom & Pete", sample="wood stick")        
+    RE(tomo_scan(slewSpeed=10, stop=24*360, numProjPerSweep=3011), sample="wood stick")        
 
 """
+
+
+def user_tomo_scan(acquire_time=0.1, md=None):
+    _md = md or OrderedDict()
+    _md["tomo_plan"] = "user_tomo_scan"
+
+    # TODO: compute the slewSpeed
+    slewSpeed = 1
+    yield from bps.mv(
+        pg3_det.cam.acquire_time, acquire_time,
+    )
+    yield from tomo_scan(slewSpeed=slewSpeed, md=_md)
