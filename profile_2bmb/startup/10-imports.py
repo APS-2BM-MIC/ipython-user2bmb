@@ -3,7 +3,7 @@ print(__file__)
 
 """Set up default complex devices"""
 
-
+import h5py
 import time
 import threading
 from collections import OrderedDict
