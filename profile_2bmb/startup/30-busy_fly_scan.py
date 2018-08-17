@@ -209,7 +209,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.monitor(rotStage.user_readback, name="rotation_monitor")
         yield from bps.monitor(det.image.array_counter, name="array_counter_monitor")
         yield from bps.monitor(tomo_stage.x, name="tomo_stage_x_monitor")
-
+        
         # prepare the camera and the HDF5 plugin to write data
         yield from bps.mv(
             det.cam.nd_attributes_file, "monaDetectorAttributes.xml",
@@ -218,6 +218,12 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             det.hdf1.auto_save, "Yes",
             det.cam.array_counter, 0,
             det.hdf1.num_capture, total_number_frames,
+            
+            # pre-compute the theta values to be imaged, in order of execution
+            computed_theta, np.linspace(start, stop, numProjPerSweep)
+            # computed_theta, np.linspace(start, stop, numProjPerSweep) % 360.0
+            # TODO: add /exchange/theta to layout file (uncomment existing code there)
+            # and remove addThetaArray() call below to add this after the scan completes
         )
 
         if MEASURE_DARKS_AND_FLATS:
@@ -285,6 +291,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         det.cam.stage_sigs = stage_sigs["det.cam"]
         
         hdf5_file_name = det.hdf1.full_file_name.value
+        # TODO: remove next line when computed_theta PV is added to layout file
         addThetaArray(hdf5_file_name, start, stop, numProjPerSweep)
 
     return (yield from _internal_tomo())

@@ -49,3 +49,5 @@ class DualPf4FilterBox(Device):
 
 
 #pf4 = DualPf4FilterBox("2bmb:pf4:", name="pf4")
+
+computed_theta = EpicsSignal("2bmb:DX:theta", name="computed_theta")

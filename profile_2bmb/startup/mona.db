@@ -39,3 +39,24 @@ record(ao, "2bmbPG3:data_stat_mean_ctr") {
 record(ao, "2bmbPG3:data_stat_mean_res") {
     field(DESC, "PG3 ...")
 }
+
+
+# -----------------------------------
+# temporary, until ioc2bmb is rebooted with this PV
+
+#  P=2bmb:
+#  Q=DX:
+# 
+# defines PVs to be included in Tomography DataExchange HDF5 files
+
+
+# Contains (expected) theta (rotation angle) values for next tomo scan.
+# Written by data acq software such as Bluesky.
+record(waveform, "2bmb:DX:theta") {
+  field(DESC, "pre-computed theta angles")
+  field(DTYP, "Soft Channel")
+  field(EGU,  "degrees")
+  field(FTVL, "DOUBLE")
+  field(NELM, "9999")
+}
+
