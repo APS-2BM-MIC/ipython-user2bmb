@@ -114,14 +114,24 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     _md["project"] = "mona"
     _md["APS_storage_ring_current,mA"] = aps_current.value
     _md["datetime_plan_started"] = str(datetime.now())
+    _md["tomo parameters"] = dict(
+        start = start,
+        stop = stop,
+        numProjPerSweep = numProjPerSweep,
+        slewSpeed = slewSpeed,
+        accl = accl,
+        samInPos = samInPos,
+        samOutDist = samOutDist,
+        acquire_time = acquire_time,
+    )
 
     # assigns darks, whites, images to proper datasets in HDF5 file
+    det = pg3_det
     AD_setup_FrameType(
         EPICS_PV_prefix["PG3 PointGrey Grasshopper3"], 
         scheme="DataExchange"
     )
     pso = psofly
-    det = pg3_det
     rotStage = tomo_stage.rotary
     shutter = B_shutter
     
@@ -209,6 +219,8 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.monitor(rotStage.user_readback, name="rotation_monitor")
         yield from bps.monitor(det.image.array_counter, name="array_counter_monitor")
         yield from bps.monitor(tomo_stage.x, name="tomo_stage_x_monitor")
+
+        computed_theta.put(np.linspace(start, stop, numProjPerSweep))
         
         # prepare the camera and the HDF5 plugin to write data
         yield from bps.mv(
@@ -218,12 +230,6 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             det.hdf1.auto_save, "Yes",
             det.cam.array_counter, 0,
             det.hdf1.num_capture, total_number_frames,
-            
-            # pre-compute the theta values to be imaged, in order of execution
-            # FIXME: fails in RE() computed_theta, np.linspace(start, stop, numProjPerSweep)
-            # computed_theta, np.linspace(start, stop, numProjPerSweep) % 360.0
-            # TODO: add /exchange/theta to layout file (uncomment existing code there)
-            # and remove addThetaArray() call below to add this after the scan completes
         )
 
         if MEASURE_DARKS_AND_FLATS:
@@ -325,31 +331,46 @@ Ideally, for sampling purposes, we'll make that shift manually
 def user_tomo_scan(acquire_time=0.1, md=None):
     _md = md or OrderedDict()
     _md["tomo_plan"] = "user_tomo_scan"
+    det = pg3_det   # also set in tomo_scan()
 
-    rotation_speed = 1
+    readout_time = 0.02         # a wild guess, seconds
+    min_speed = 0.5             # Pete's estimate
+    max_speed = 30              # top speed from other code examples
+    number_of_projections = 1500
+    start = 0
+    stop = 180
+    angular_range = stop - start
+    scan_time = number_of_projections * (acquire_time + readout_time)
+    rotation_speed = max(min(angular_range / scan_time, max_speed), min_speed)
 
-    if False:                       # TODO: compute the slewSpeed
-        readout_time = 0.001        # a wild guess, seconds
-        min_speed = 0.5             # Pete's estimate
-        max_speed = 30              # Pete's estimate
-        number_of_projections = 1500
-        start = 0
-        stop = 180
-        angular_range = stop - start
-        scan_time = number_of_projections * (acquire_time + readout_time)
-        rotation_speed = max(min(angular_range / scan_time, max_speed), min_speed)
-        _md["a priori tomo parameters"] = dict(
-            angular_range = angular_range,
-            scan_time = scan_time,
-            rotation_speed = rotation_speed,
-            readout_time = readout_time,
-            min_speed = min_speed,
-            max_speed = max_speed,
-            start = start,
-            stop = stop,
-            number_of_projections = number_of_projections,
-        )
-    yield from bps.mv(
-        pg3_det.cam.acquire_time, acquire_time,
+    camera_size_x = det.cam.array_size.array_size_x.value
+    blur_delta = acquire_time * rotation_speed
+    blur_pixel = (camera_size_x / 2.0) - ((camera_size_x / 2.0) * np.cos(blur_delta * np.pi /180.))
+
+    print("computed rotation speed: {} degrees / s".format(rotation_speed))
+    print("computed blur angle/image: {} degrees".format(blur_delta))
+    print("computed blur pixel/image: {} pixels".format(blur_pixel))
+
+    _md["user_tomo_scan parameters"] = dict(
+        angular_range = angular_range,
+        scan_time = scan_time,
+        rotation_speed = rotation_speed,
+        readout_time = readout_time,
+        min_speed = min_speed,
+        max_speed = max_speed,
+        start = start,
+        stop = stop,
+        number_of_projections = number_of_projections,
+        blur_delta = blur_delta,
+        blur_pixel = blur_pixel,
+        camera_size_x = camera_size_x,
     )
-    yield from tomo_scan(slewSpeed=rotation_speed, md=_md)
+
+    yield from bps.mv(
+        det.cam.acquire_time, acquire_time,
+    )
+    yield from tomo_scan(
+        slewSpeed=rotation_speed, 
+        acquire_time=acquire_time, 
+        md=_md
+    )
