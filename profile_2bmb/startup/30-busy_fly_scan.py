@@ -339,8 +339,8 @@ def user_tomo_scan(acquire_time=0.1, md=None):
     min_speed = 0.5             # Pete's estimate
     max_speed = 30              # top speed from other code examples
     number_of_projections = 1500
-    start = 0
-    stop = 180
+    start = 0.0
+    stop = 180.0
     angular_range = stop - start
     scan_time = number_of_projections * (acquire_time + readout_time)
     rotation_speed = max(min(angular_range / scan_time, max_speed), min_speed)
