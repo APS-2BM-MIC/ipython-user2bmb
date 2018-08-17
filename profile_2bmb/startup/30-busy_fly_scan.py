@@ -221,6 +221,8 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.monitor(tomo_stage.x, name="tomo_stage_x_monitor")
 
         computed_theta.put(np.linspace(start, stop, numProjPerSweep))
+        yield from bps.sleep(1.0)   # to set values in EPICS
+        computed_theta.get()
         
         # prepare the camera and the HDF5 plugin to write data
         yield from bps.mv(
