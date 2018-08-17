@@ -326,9 +326,30 @@ def user_tomo_scan(acquire_time=0.1, md=None):
     _md = md or OrderedDict()
     _md["tomo_plan"] = "user_tomo_scan"
 
-    # TODO: compute the slewSpeed
-    slewSpeed = 1
+    rotation_speed = 1
+
+    if False:                       # TODO: compute the slewSpeed
+        readout_time = 0.001        # a wild guess, seconds
+        min_speed = 0.5             # Pete's estimate
+        max_speed = 30              # Pete's estimate
+        number_of_projections = 1500
+        start = 0
+        stop = 180
+        angular_range = stop - start
+        scan_time = number_of_projections * (acquire_time + readout_time)
+        rotation_speed = max(min(angular_range / scan_time, max_speed), min_speed)
+        _md["a priori tomo parameters"] = dict(
+            angular_range = angular_range,
+            scan_time = scan_time,
+            rotation_speed = rotation_speed,
+            readout_time, readout_time,
+            min_speed, min_speed,
+            max_speed, max_speed,
+            start, start,
+            stop, stop,
+            number_of_projections, number_of_projections,
+        )
     yield from bps.mv(
         pg3_det.cam.acquire_time, acquire_time,
     )
-    yield from tomo_scan(slewSpeed=slewSpeed, md=_md)
+    yield from tomo_scan(slewSpeed=rotation_speed, md=_md)
