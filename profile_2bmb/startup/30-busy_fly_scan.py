@@ -220,7 +220,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             det.hdf1.num_capture, total_number_frames,
             
             # pre-compute the theta values to be imaged, in order of execution
-            computed_theta, np.linspace(start, stop, numProjPerSweep)
+            # FIXME: fails in RE() computed_theta, np.linspace(start, stop, numProjPerSweep)
             # computed_theta, np.linspace(start, stop, numProjPerSweep) % 360.0
             # TODO: add /exchange/theta to layout file (uncomment existing code there)
             # and remove addThetaArray() call below to add this after the scan completes
@@ -342,12 +342,12 @@ def user_tomo_scan(acquire_time=0.1, md=None):
             angular_range = angular_range,
             scan_time = scan_time,
             rotation_speed = rotation_speed,
-            readout_time, readout_time,
-            min_speed, min_speed,
-            max_speed, max_speed,
-            start, start,
-            stop, stop,
-            number_of_projections, number_of_projections,
+            readout_time = readout_time,
+            min_speed = min_speed,
+            max_speed = max_speed,
+            start = start,
+            stop = stop,
+            number_of_projections = number_of_projections,
         )
     yield from bps.mv(
         pg3_det.cam.acquire_time, acquire_time,
