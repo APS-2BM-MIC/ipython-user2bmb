@@ -220,10 +220,6 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.monitor(det.image.array_counter, name="array_counter_monitor")
         yield from bps.monitor(tomo_stage.x, name="tomo_stage_x_monitor")
 
-        computed_theta.put(np.linspace(start, stop, numProjPerSweep))
-        yield from bps.sleep(1.0)   # to set values in EPICS
-        computed_theta.get()
-        
         # prepare the camera and the HDF5 plugin to write data
         yield from bps.mv(
             det.cam.nd_attributes_file, "monaDetectorAttributes.xml",
@@ -299,7 +295,6 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         det.cam.stage_sigs = stage_sigs["det.cam"]
         
         hdf5_file_name = det.hdf1.full_file_name.value
-        # TODO: remove next line when computed_theta PV is added to layout file
         addThetaArray(hdf5_file_name, start, stop, numProjPerSweep)
 
     return (yield from _internal_tomo())
@@ -341,6 +336,14 @@ def user_tomo_scan(acquire_time=0.1, md=None):
     number_of_projections = 1500
     start = 0.0
     stop = 180.0
+    
+    # TODO:
+    # user wants to specify acquire_time based on signal and noise
+    # we want to avoid too much blur
+    # we want to be as fast as possible
+    # optimize this process to get the fastest speed.
+    # how much blur is acceptable?  No more than 0.1 pixel (as a starting guess)
+    
     angular_range = stop - start
     scan_time = number_of_projections * (acquire_time + readout_time)
     rotation_speed = max(min(angular_range / scan_time, max_speed), min_speed)
@@ -348,7 +351,9 @@ def user_tomo_scan(acquire_time=0.1, md=None):
     camera_size_x = det.cam.array_size.array_size_x.value
     blur_delta = acquire_time * rotation_speed
     blur_pixel = (camera_size_x / 2.0) - ((camera_size_x / 2.0) * np.cos(blur_delta * np.pi /180.))
-
+    # constrain the blur here
+    # then determine the rotation speed
+    
     print("computed rotation speed: {} degrees / s".format(rotation_speed))
     print("computed blur angle/image: {} degrees".format(blur_delta))
     print("computed blur pixel/image: {} pixels".format(blur_pixel))
