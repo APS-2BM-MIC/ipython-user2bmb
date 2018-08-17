@@ -61,3 +61,4 @@ sd.baseline.append(APS)
 computed_theta = EpicsSignal("2bmb:DX:theta", name="computed_theta")
 
 user_info = ExperimentInfo("2bmS1:", name="user_info")
+sd.baseline.append(user_info)
