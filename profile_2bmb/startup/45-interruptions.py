@@ -2,7 +2,7 @@ from bluesky.suspenders import SuspendBoolHigh
 from functools import partial
 
 
-class PauseInterupt(SuspendBoolHigh):
+class PauseInterrupt(SuspendBoolHigh):
     def __call__(self, value, **kwargs):
         """Make the class callable so that we can
         pass it off to the ophyd callback stack.
@@ -29,5 +29,5 @@ class PauseInterupt(SuspendBoolHigh):
                 self._SuspenderBase__set_event()
 
 
-interupter = PauseInterupt(mona.stop_acquisition)
-RE.install_suspender(interupter)
+interrupter = PauseInterrupt(mona.stop_acquisition)
+RE.install_suspender(interrupter)
