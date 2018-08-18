@@ -413,7 +413,7 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
             acquire_time=acquire_time, 
             md=_md
         )
-        print("{}: time for previous scan: {} s".format(
+        print("{}: total time for previous scan: {} s".format(
             datetime.now(), 
             time.time()-t0
         ))
