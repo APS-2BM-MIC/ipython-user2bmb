@@ -194,12 +194,12 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         logger.debug("progress_reporting is starting")
         t = time.time()
         startup = t + update_interval_s/2
-        while t < startup and pso.fly.value == 0:    # wait for flyscan to start
+        while t < startup and pso.fly.get(timeout=2) == 0:    # wait for flyscan to start
             time.sleep(update_poll_delay_s)
 
         logger.debug("progress_reporting: fly starts")
         update_time = t = report_t0 = time.time()
-        while pso.fly.value == 1:
+        while pso.fly.get(timeout=2) == 1:
             if t >= update_time:
                 update_time = t + update_interval_s
                 msg = _report_(t - report_t0)
@@ -324,6 +324,54 @@ Ideally, for sampling purposes, we'll make that shift manually
 
 """
 
+def calculate_rotation_parameters(det, acquire_time, start, stop, number_of_projections):
+    """
+    internal: compute optimal rotation speed based on acquire_time and minimal blur
+    
+    see issue #35
+    """
+    readout_time = 0.02         # a wild guess, seconds
+    min_speed = 0.5             # negotiable estimate
+    max_speed = 18              # top speed from other code examples
+    maximum_pixel_blur = 0.1    # negotiable estimate
+
+    angular_range = stop - start
+    scan_time = number_of_projections * (acquire_time + readout_time)
+    mid_detector = 0.5 * det.cam.array_size.array_size_x.value
+
+    results = dict(
+        acquire_time = acquire_time,
+        start = start, 
+        stop = stop, 
+        number_of_projections = number_of_projections,
+        readout_time = readout_time,
+        min_speed = min_speed,
+        max_speed = max_speed,
+        angular_range = angular_range,
+        scan_time = scan_time,
+        mid_detector = mid_detector, 
+    )
+
+    # assume starting blur at maximum
+    pixel_blur = maximum_pixel_blur
+    angular_blur = (180/np.pi) * np.arccos(1 - pixel_blur/mid_detector)
+    speed = max(min(angular_blur / acquire_time, max_speed), min_speed)
+
+    results.update(dict(
+        max_pixel_blur = pixel_blur,
+        max_angular_blur = angular_blur,
+        constrained_rotational_speed = speed,
+    ))
+
+    angular_blur = acquire_time * speed
+    pixel_blur = mid_detector * (1 - np.cos(angular_blur * np.pi /180))
+    results.update(dict(
+        constrained_angular_blur = angular_blur,
+        constrained_pixel_blur = speed,
+    ))
+    
+    return results
+
 
 def user_tomo_scan(acquire_time=0.1, md=None):
     _md = md or OrderedDict()
@@ -332,52 +380,44 @@ def user_tomo_scan(acquire_time=0.1, md=None):
 
     readout_time = 0.02         # a wild guess, seconds
     min_speed = 0.5             # Pete's estimate
-    max_speed = 30              # top speed from other code examples
+    max_speed = 18              # top speed from other code examples
     number_of_projections = 1500
     start = 0.0
     stop = 180.0
     
-    # TODO:
-    # user wants to specify acquire_time based on signal and noise
-    # we want to avoid too much blur
-    # we want to be as fast as possible
-    # optimize this process to get the fastest speed.
-    # how much blur is acceptable?  No more than 0.1 pixel (as a starting guess)
-    
     angular_range = stop - start
     scan_time = number_of_projections * (acquire_time + readout_time)
-    rotation_speed = max(min(angular_range / scan_time, max_speed), min_speed)
+    parameters = calculate_rotation_parameters(det, acquire_time, start, stop, number_of_projections)
+    rotation_speed = 1          # fixed value, change here
 
     camera_size_x = det.cam.array_size.array_size_x.value
     blur_delta = acquire_time * rotation_speed
     blur_pixel = (camera_size_x / 2.0) - ((camera_size_x / 2.0) * np.cos(blur_delta * np.pi /180.))
-    # constrain the blur here
-    # then determine the rotation speed
     
     print("computed rotation speed: {} degrees / s".format(rotation_speed))
     print("computed blur angle/image: {} degrees".format(blur_delta))
     print("computed blur pixel/image: {} pixels".format(blur_pixel))
 
-    _md["user_tomo_scan parameters"] = dict(
-        angular_range = angular_range,
-        scan_time = scan_time,
-        rotation_speed = rotation_speed,
-        readout_time = readout_time,
-        min_speed = min_speed,
-        max_speed = max_speed,
-        start = start,
-        stop = stop,
-        number_of_projections = number_of_projections,
-        blur_delta = blur_delta,
-        blur_pixel = blur_pixel,
-        camera_size_x = camera_size_x,
-    )
+    _md["user_tomo_scan parameters"] = parameters
 
     yield from bps.mv(
         det.cam.acquire_time, acquire_time,
+        A_shutter, "open"
     )
     yield from tomo_scan(
         slewSpeed=rotation_speed, 
         acquire_time=acquire_time, 
         md=_md
     )
+
+
+def run_many(n=2, t=0.1):
+    """
+    example:  RE(run_many(n=2, t=0.1), comment="standard", sample="wood stick")
+    """
+
+    def _plan_():
+        """function that yields the generator we want to repeat"""
+        yield from user_tomo_scan(acquire_time=t)
+    
+    yield from bps.repeat(_plan_, num = n, delay = 2)
