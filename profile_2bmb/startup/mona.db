@@ -2,6 +2,10 @@
 # purpose: provide PVs for MONA modules to advise BlueSky
 # to run:  ./run_mona_ioc.sh
 
+# watch these PVs with this command:
+# APSshare/anaconda/x86_64/bin/pvview 2bmbPG3:data_mean_ctr 2bmbPG3:data_mean_res 2bmbPG3:data_st_dev_ctr 2bmbPG3:data_st_dev_res 2bmbPG3:data_stat_mean_ctr 2bmbPG3:data_stat_mean_res &
+
+
 
 #The configured quality checks are:
 #
