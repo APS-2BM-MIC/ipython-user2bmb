@@ -373,7 +373,7 @@ def calculate_rotation_parameters(det, acquire_time, start, stop, number_of_proj
     return results
 
 
-def user_tomo_scan(acquire_time=0.1, md=None):
+def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     _md = md or OrderedDict()
     _md["tomo_plan"] = "user_tomo_scan"
     det = pg3_det   # also set in tomo_scan()
@@ -400,24 +400,22 @@ def user_tomo_scan(acquire_time=0.1, md=None):
 
     _md["user_tomo_scan parameters"] = parameters
 
-    yield from bps.mv(
-        det.cam.acquire_time, acquire_time,
-        A_shutter, "open"
-    )
-    yield from tomo_scan(
-        slewSpeed=rotation_speed, 
-        acquire_time=acquire_time, 
-        md=_md
-    )
-
-
-def run_many(n=2, t=0.1):
-    """
-    example:  RE(run_many(n=2, t=0.1), comment="standard", sample="wood stick")
-    """
-
     def _plan_():
         """function that yields the generator we want to repeat"""
-        yield from user_tomo_scan(acquire_time=t)
+        t0 = time.time()
+        yield from bps.checkpoint()
+        yield from bps.mv(
+            det.cam.acquire_time, acquire_time,
+            A_shutter, "open"
+        )
+        yield from tomo_scan(
+            slewSpeed=rotation_speed, 
+            acquire_time=acquire_time, 
+            md=_md
+        )
+        print("{}: time for previous scan: {} s".format(
+            datetime.now(), 
+            time.time()-t0
+        ))
     
-    yield from bps.repeat(_plan_, num = n, delay = 2)
+    yield from bps.repeat(_plan_, num=iterations, delay=delay_time_s)
