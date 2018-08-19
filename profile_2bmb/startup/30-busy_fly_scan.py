@@ -133,7 +133,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             scheme="DataExchange"
         )
     except NameError as _exc:
-        print("APS_devices.AD_setup_FrameType error", _exc)
+        print("advisory: APS_devices.AD_setup_FrameType error", _exc)
     pso = psofly
     rotStage = tomo_stage.rotary
     shutter = B_shutter
