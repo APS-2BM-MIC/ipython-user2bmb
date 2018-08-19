@@ -41,7 +41,7 @@ def motor_set_modulo(motor, modulo):
 
 
 @APS_plans.run_in_thread
-def addThetaArray(hdf5_file_name, start, stop, num):
+def addThetaArray(hdf5_file_name, start, stop, step):
     if not os.path.exists(hdf5_file_name):
         print("Could not find {}".format(hdf5_file_name))
         print("Cannot add /exchange/theta")
@@ -49,7 +49,7 @@ def addThetaArray(hdf5_file_name, start, stop, num):
     
     print("Adding /exchange/theta to {}".format(hdf5_file_name))
 
-    theta = np.linspace(start, stop, num)
+    theta = np.arange(start, stop, step)
     # theta = theta % 360
 
     with h5py.File(hdf5_file_name, "r+") as fp:
@@ -295,7 +295,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         det.cam.stage_sigs = stage_sigs["det.cam"]
         
         hdf5_file_name = det.hdf1.full_file_name.value
-        addThetaArray(hdf5_file_name, start, stop, numProjPerSweep)
+        addThetaArray(hdf5_file_name, start, stop, _delta)
 
     return (yield from _internal_tomo())
 
@@ -373,6 +373,102 @@ def calculate_rotation_parameters(det, acquire_time, start, stop, number_of_proj
     return results
 
 
+def calc_blur_pixel(exposure_time, readout_time, camera_size_x, angular_range, number_of_proj):
+    """
+    Calculate the blur error (pixel units) due to a rotary stage fly scan motion durng the exposure.
+    
+    Parameters
+    ----------
+    exposure_time: float
+        Detector exposure time
+    readout_time : float
+        Detector read out time
+    camera_size_x : int
+        Detector X size
+    angular_range : float
+        Tomographic scan angular range
+    number_of_proj : int
+        Numember of projections
+
+    Returns
+    -------
+    float
+        Blur error in pixel. For good quality reconstruction this should be < 0.2 pixel.
+    """
+
+    angular_step = angular_range/number_of_proj
+    scan_time = number_of_proj * (exposure_time + readout_time)
+    rot_speed = angular_range / scan_time
+    frame_rate = number_of_proj / scan_time
+    blur_delta = exposure_time * rot_speed
+    
+    mid_detector = camera_size_x / 2.0
+    blur_pixel = mid_detector(1 - np.cos(blur_delta * np.pi /180.))
+
+    #print("*************************************")
+    #print("Total # of proj: ", number_of_proj)
+    #print("Exposure Time: ", exposure_time, "s")
+    #print("Readout Time: ", readout_time, "s")
+    #print("Angular Range: ", angular_range, "degrees")
+    #print("Camera X size: ", camera_size_x)
+    #print("*************************************")
+    #print("Angular Step: ", angular_step, "degrees")   
+    #print("Scan Time: ", scan_time ,"s") 
+    #print("Rot Speed: ", rot_speed, "degrees/s")
+    #print("Frame Rate: ", frame_rate, "fps")
+    #print("Blur: ", blur_pixel, "pixels")
+    #print("*************************************")
+    
+    return blur_pixel, rot_speed, scan_time
+
+
+def calc_acquisition(blur_pixel, exposure_time, readout_time, camera_size_x, angular_range, number_of_proj):
+    """
+    Calculate frame rate and rotation speed for a desired blur error t
+
+    Parameters
+    ----------
+    blur_pixel : float
+        Desired blur error. For good quality reconstruction this should be < 0.2 pixel.
+    exposure_time: float
+        Detector exposure time
+    readout_time : float
+        Detector read out time
+    camera_size_x : int
+        Detector X size
+    angular_range : float
+        Tomographic scan angular range
+    number_of_proj : int
+        Number of projections
+
+    Returns
+    -------
+    float
+        frame_rate, rot_speed
+    """
+
+    mid_detector = camera_size_x / 2.0
+    delta_blur  = np.arccos(1 - blur_pixel / mid_detector) * 180.0 / np.pi
+    rot_speed = delta_blur  / exposure_time
+
+    scan_time = angular_range / rot_speed
+    frame_rate = number_of_proj / scan_time
+    print("*************************************")
+    print("Total # of proj: ", number_of_proj)
+    print("Exposure Time: ", exposure_time, "s")
+    print("Readout Time: ", readout_time, "s")
+    print("Angular Range: ", angular_range, "degrees")
+    print("Camera X size: ", camera_size_x)
+    print("Blur Error: ", blur_pixel, "pixels")
+    print("*************************************")
+    print("Rot Speed: : ", rot_speed, "degrees/s")
+    print("Scan Time:: ", scan_time, "s")
+    print("Frame Rate: ", frame_rate, "fps")
+    print("*************************************")
+  
+    return frame_rate, rot_speed
+
+
 def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     _md = md or OrderedDict()
     _md["tomo_plan"] = "user_tomo_scan"
@@ -387,7 +483,18 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     
     angular_range = stop - start
     scan_time = number_of_projections * (acquire_time + readout_time)
+
     parameters = calculate_rotation_parameters(det, acquire_time, start, stop, number_of_projections)
+    _results = calc_blur_pixel(acquire_time, readout_time, det.cam.array_size.array_size_x.value, angular_range, number_of_projections)
+    params = dict(
+        blur_pixel = _results[0],
+        rot_speed = _results[1], 
+        scan_time = _results[2]
+    )
+    _results = calc_acquisition(params["blur_pixel"], acquire_time, readout_time, det.cam.array_size.array_size_x.value, angular_range, number_of_projections)
+    params["frame_rate"] = _results[0]
+    params["rot_speed"] = _results[1]
+
     rotation_speed = 1          # fixed value, change here
 
     camera_size_x = det.cam.array_size.array_size_x.value
@@ -398,11 +505,15 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     print("computed blur angle/image: {} degrees".format(blur_delta))
     print("computed blur pixel/image: {} pixels".format(blur_pixel))
 
-    _md["user_tomo_scan parameters"] = parameters
+    _md["proposed user_tomo_scan params"] = params          # proposed
+    _md["unused user_tomo_scan parameters"] = parameters    # needs testing, probably won't use
+
+    run_counter = 0
 
     def _plan_():
         """function that yields the generator we want to repeat"""
         t0 = time.time()
+        run_counter += 1
         yield from bps.checkpoint()
         yield from bps.mv(
             det.cam.acquire_time, acquire_time,
@@ -413,8 +524,11 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
             acquire_time=acquire_time, 
             md=_md
         )
-        print("{}: total time for previous scan: {} s".format(
+        msg = "{}: iteration {} of {}: total time for iteration: {} s"
+        # msg = "{}: total time for previous scan: {} s"
+        print(msg.format(
             datetime.now(), 
+            run_counter, iterations,
             time.time()-t0
         ))
     
