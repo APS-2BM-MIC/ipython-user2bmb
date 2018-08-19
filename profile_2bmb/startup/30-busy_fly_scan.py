@@ -127,10 +127,13 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
 
     # assigns darks, whites, images to proper datasets in HDF5 file
     det = pg3_det
-    AD_setup_FrameType(
-        EPICS_PV_prefix["PG3 PointGrey Grasshopper3"], 
-        scheme="DataExchange"
-    )
+    try:
+        APS_devices.AD_setup_FrameType(
+            EPICS_PV_prefix["PG3 PointGrey Grasshopper3"], 
+            scheme="DataExchange"
+        )
+    except NameError as _exc:
+        print("APS_devices.AD_setup_FrameType error", _exc)
     pso = psofly
     rotStage = tomo_stage.rotary
     shutter = B_shutter
@@ -501,9 +504,9 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
         global __tomo_scan_counter
         t0 = time.time()
         __tomo_scan_counter += 1
-        if not A_shutter.isOpen:
-            # TODO: better as a suspender?
-            raise RuntimeError("The A station shutter is closed - open it yourself")
+        #if not A_shutter.isOpen:
+        #    # TODO: better as a suspender?
+        #    raise RuntimeError("The A station shutter is closed - open it yourself")
         yield from bps.checkpoint()
         yield from bps.mv(
             det.cam.acquire_time, acquire_time,
