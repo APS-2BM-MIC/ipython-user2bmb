@@ -481,24 +481,24 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     start = 0.0
     stop = 180.0
     # PG3 camera can do at most ~128 projections/sec at 8-bit: 6.333 ms exposure time
+    camera_size_x = det.cam.array_size.array_size_x.value
     
     angular_range = stop - start
     scan_time = number_of_projections * (acquire_time + readout_time)
 
     parameters = calculate_rotation_parameters(det, acquire_time, start, stop, number_of_projections)
-    _results = calc_blur_pixel(acquire_time, readout_time, det.cam.array_size.array_size_x.value, angular_range, number_of_projections)
+    _results = calc_blur_pixel(acquire_time, readout_time, camera_size_x, angular_range, number_of_projections)
     params = dict(
         blur_pixel = _results[0],
         rot_speed = _results[1], 
         scan_time = _results[2]
     )
-    _results = calc_acquisition(params["blur_pixel"], acquire_time, readout_time, det.cam.array_size.array_size_x.value, angular_range, number_of_projections)
+    _results = calc_acquisition(params["blur_pixel"], acquire_time, readout_time, camera_size_x, angular_range, number_of_projections)
     params["frame_rate"] = _results[0]
     params["rot_speed"] = _results[1]
 
     rotation_speed = 1          # fixed value, change here
 
-    camera_size_x = det.cam.array_size.array_size_x.value
     blur_delta = acquire_time * rotation_speed
     blur_pixel = (camera_size_x / 2.0) - ((camera_size_x / 2.0) * np.cos(blur_delta * np.pi /180.))
     
