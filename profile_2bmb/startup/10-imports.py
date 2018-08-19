@@ -22,6 +22,7 @@ from ophyd.areadetector.plugins import PluginBase
 import ophyd.status  # for the wait() function
 
 from bluesky import IllegalMessageSequence
+import bluesky.suspenders
 
 # bps.mv, bps.mvr, ... (make it obvious where this originate)
 import bluesky.plan_stubs as bps

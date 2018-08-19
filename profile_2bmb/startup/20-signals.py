@@ -58,13 +58,22 @@ try:
 except Exception as _exc:
     print(_exc)
 
+# no scans until A_shutter is open
+suspend_A_shutter = bluesky.suspenders.SuspendFloor(A_shutter.pss_state, 1)
+#suspend_A_shutter.install(RE)
+RE.install_suspender(suspend_A_shutter)
+
 
 mona = MonaModuleSignals(name="mona")
 
 APS = APS_devices.ApsMachineParametersDevice(name="APS")
-aps_current = APS.current
-
 sd.baseline.append(APS)
+
+aps_current = APS.current
+# no scans if APS.current is too low
+suspend_APS_current = bluesky.suspenders.SuspendFloor(aps_current, 2, resume_thresh=10)
+RE.install_suspender(suspend_APS_current)
+
 #sd.monitors.append(aps_current)
 
 #pf4 = DualPf4FilterBox("2bmb:pf4:", name="pf4")
