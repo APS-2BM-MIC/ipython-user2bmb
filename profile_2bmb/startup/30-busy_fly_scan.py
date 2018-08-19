@@ -447,7 +447,7 @@ def calc_acquisition(blur_pixel, exposure_time, readout_time, camera_size_x, ang
 
 __tomo_scan_counter = 0       # used internally by user_tomo_scan
 
-def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
+def user_tomo_scan(*, acquire_time=0.01, iterations=1, delay_time_s=1.0, md=None):
     """
     plan: user-facing plan to run tomography instrument
     
@@ -486,6 +486,7 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     params["rot_speed2"] = _results[1]
 
     rotation_speed = 1          # fixed value, change here
+    rotation_speed = params["rot_speed2"]
 
     blur_delta = acquire_time * rotation_speed
     blur_pixel = (camera_size_x / 2.0) - ((camera_size_x / 2.0) * np.cos(blur_delta * np.pi /180.))
@@ -524,4 +525,8 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     
     t00 = time.time()
     yield from bps.repeat(_plan_, num=iterations, delay=delay_time_s)
-    print(datetime.now(), "total time: {} s".format(time.time() - t00))
+    print("{}: total time for {} iteration(s): {} s".format(
+        datetime.now(), 
+        iterations, 
+        time.time() - t00
+    ))
