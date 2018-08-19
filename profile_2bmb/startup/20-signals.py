@@ -35,12 +35,23 @@ class ExperimentInfo(Device):
     user_email = Component(EpicsSignalRO, "UserEmail", string=True)
 
 
+class ApsPssShutterWithStatus(APS_devices.ApsPssShutterWithStatus):
+    
+    @property
+    def isOpen(self):
+        return self.pss_state.value == self.open_val
+    
+    @property
+    def isClosed(self):
+        return self.pss_state.value == self.close_val
+
+
 try:
-    A_shutter = APS_devices.ApsPssShutterWithStatus(
+    A_shutter = ApsPssShutterWithStatus(
         "2bma:A_shutter", 
         "PA:02BM:STA_A_FES_OPEN_PL", 
         name="A_shutter")
-    B_shutter = APS_devices.ApsPssShutterWithStatus(
+    B_shutter = ApsPssShutterWithStatus(
         "2bma:B_shutter", 
         "PA:02BM:STA_B_SBS_OPEN_PL", 
         name="B_shutter")
