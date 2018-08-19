@@ -504,9 +504,6 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
         global __tomo_scan_counter
         t0 = time.time()
         __tomo_scan_counter += 1
-        #if not A_shutter.isOpen:
-        #    # TODO: better as a suspender?
-        #    raise RuntimeError("The A station shutter is closed - open it yourself")
         yield from bps.checkpoint()
         yield from bps.mv(
             det.cam.acquire_time, acquire_time,
