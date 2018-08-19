@@ -1,3 +1,5 @@
+print(__file__)
+
 from bluesky.suspenders import SuspendBoolHigh
 from functools import partial
 
