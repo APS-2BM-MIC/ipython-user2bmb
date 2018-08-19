@@ -330,7 +330,7 @@ def calculate_rotation_parameters(det, acquire_time, start, stop, number_of_proj
     
     see issue #35
     """
-    readout_time = 0.02         # a wild guess, seconds
+    readout_time = 0.003        # guessed from GUI screen with 8-bit, seconds
     min_speed = 0.5             # negotiable estimate
     max_speed = 18              # top speed from other code examples
     maximum_pixel_blur = 0.1    # negotiable estimate
@@ -403,7 +403,7 @@ def calc_blur_pixel(exposure_time, readout_time, camera_size_x, angular_range, n
     blur_delta = exposure_time * rot_speed
     
     mid_detector = camera_size_x / 2.0
-    blur_pixel = mid_detector(1 - np.cos(blur_delta * np.pi /180.))
+    blur_pixel = mid_detector * (1 - np.cos(blur_delta * np.pi /180.))
 
     #print("*************************************")
     #print("Total # of proj: ", number_of_proj)
@@ -480,6 +480,7 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     number_of_projections = 1500
     start = 0.0
     stop = 180.0
+    # PG3 camera can do at most ~128 projections/sec at 8-bit: 6.333 ms exposure time
     
     angular_range = stop - start
     scan_time = number_of_projections * (acquire_time + readout_time)
@@ -508,12 +509,12 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     _md["proposed user_tomo_scan params"] = params          # proposed
     _md["unused user_tomo_scan parameters"] = parameters    # needs testing, probably won't use
 
-    run_counter = 0
+    # run_counter = 0
 
     def _plan_():
         """function that yields the generator we want to repeat"""
         t0 = time.time()
-        run_counter += 1
+        # run_counter += 1
         yield from bps.checkpoint()
         yield from bps.mv(
             det.cam.acquire_time, acquire_time,
@@ -522,13 +523,14 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
         yield from tomo_scan(
             slewSpeed=rotation_speed, 
             acquire_time=acquire_time, 
+            numProjPerSweep=number_of_projections,
             md=_md
         )
-        msg = "{}: iteration {} of {}: total time for iteration: {} s"
-        # msg = "{}: total time for previous scan: {} s"
+        # msg = "{}: iteration {} of {}: total time for iteration: {} s"
+        msg = "{}: total time for previous scan: {} s"
         print(msg.format(
             datetime.now(), 
-            run_counter, iterations,
+            # run_counter, iterations,
             time.time()-t0
         ))
     
