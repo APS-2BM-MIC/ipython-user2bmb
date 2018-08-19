@@ -158,16 +158,31 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             yield from bps.abs_set(shutter, "close", group='shutter')
         except RuntimeError as exc:
             print(exc)
+        # stop any in-progress motion
+        try:
+            yield from bps.abs_set(rotStage.motor_stop, 1)
+        except RuntimeError:
+            pass
+        yield from bps.wait(group='shutter')
+        yield from bps.mv(
+            psofly.taxi, 0,
+            psofly.fly, 0,
+        )
+
+        # stop detector acquisition
+        # note: set by numerical value, not enumeration text
+        # since RBV returns a number, value here and RBV must match
+        yield from bps.abs_set(det.cam.acquire, 0)
+        yield from bps.abs_set(det.hdf1.capture, 0)
+        yield from bps.abs_set(det.hdf1.enable, 0)
+        
+        # clear the stop flag
+        yield from bps.abs_set(mona.stop_acquisition, 0)
+
+        # send the motor to 0
         yield from bps.mv(rotStage.velocity, ROT_STAGE_FAST_SPEED)
         yield from motor_set_modulo(rotStage, 360.0)
-        yield from bps.mv(
-            rotStage, 0.00,
-            #det.cam.trigger_mode, "Internal",
-            #det.cam.image_mode, "Continuous",
-            #det.hdf1.enable, "Disable",
-            #det.hdf1.capture, "Done",
-        )
-        yield from bps.wait(group='shutter')
+        yield from bps.mv(rotStage, 0.00)
 
     det.cam.stage_sigs["num_images"] = numProjPerSweep
     det.cam.stage_sigs["trigger_mode"] = "Overlapped"
@@ -178,7 +193,6 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     total_number_frames = numProjPerSweep
     if MEASURE_DARKS_AND_FLATS:
         total_number_frames += NUM_DARK_FRAMES + NUM_FLAT_FRAMES
-    # yield from bps.mv(det.hdf1.num_capture, total_number_frames)
 
     def _report_(t):
         msg = "{:.2f}s - flying ".format(t)
@@ -199,14 +213,17 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
 
         logger.debug("progress_reporting: fly starts")
         update_time = t = report_t0 = time.time()
+        last_image_number = det.cam.num_images_counter.value
         while pso.fly.get(timeout=2) == 1:
-            if t >= update_time:
+            image_number = det.cam.num_images_counter.value
+            if t >= update_time or (image_number == 1 and last_image_number != image_number):
                 update_time = t + update_interval_s
                 msg = _report_(t - report_t0)
                 print(msg)
                 logger.debug(msg)
             time.sleep(update_poll_delay_s)
             t = time.time()
+            last_image_number = image_number
         msg = _report_(time.time() - report_t0)
         print(msg)
         logger.debug(msg)
@@ -269,7 +286,9 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         )
 
         progress_reporting()
+        t0 = time.time()
         yield from bps.mv(pso.taxi, "Taxi")
+        print(datetime.now(), "taxi time: {} s".format(time.time()-t0))
         logging.debug("after taxi")
 
         # run the fly scan
@@ -283,8 +302,10 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             det.cam.trigger_mode, "Overlapped",
         )
         yield from bps.trigger(det, group='fly')
+        t0 = time.time()
         yield from bps.abs_set(pso.fly, "Fly", group='fly')
         yield from bps.wait(group='fly')
+        print(datetime.now(), "fly time: {} s".format(time.time()-t0))
         #yield from bps.abs_set(det.cam.acquire, 0)
         logging.debug("after fly")
 
@@ -440,7 +461,7 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     det = pg3_det   # also set in tomo_scan()
     camera_size_x = det.cam.array_size.array_size_x.value
 
-    readout_time = 0.02         # a wild guess, seconds
+    readout_time = 0.002        # estimate
     min_speed = 0.5             # Pete's estimate
     max_speed = 18              # top speed from other code examples
     number_of_projections = 1500
@@ -469,6 +490,7 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
     print("computed rotation speed: {} degrees / s".format(rotation_speed))
     print("computed blur angle/image: {} degrees".format(blur_delta))
     print("computed blur pixel/image: {} pixels".format(blur_pixel))
+    print("iterations:", iterations)
 
     _md["proposed user_tomo_scan params"] = params          # proposed
 
@@ -497,4 +519,6 @@ def user_tomo_scan(acquire_time=0.1, iterations=1, delay_time_s=1.0, md=None):
             time.time()-t0
         ))
     
+    t00 = time.time()
     yield from bps.repeat(_plan_, num=iterations, delay=delay_time_s)
+    print(datetime.now(), "total time: {} s".format(time.time() - t00))
