@@ -113,8 +113,10 @@ if False:   # run this code only as-needed
 pg3_det = MyPointGreyDetector(
     EPICS_PV_prefix["PG3 PointGrey Grasshopper3"], 
     name="pg3_det")
-# TODO: support the process plugin for darks and flats
-# TODO: configure pg3_det Image1 & PVA1 to use PROC1 output instead
+
+# Consider issue #44: support the process plugin for darks and flats
+#    configure pg3_det Image1 & PVA1 to use PROC1 output instead
+
 #pg3_det.cam.stage_sigs["image_mode"] = "Single"
 #pg3_det.cam.stage_sigs["array_counter"] = 0
 pg3_det.cam.stage_sigs["gain"] = 0
