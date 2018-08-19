@@ -128,7 +128,8 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     # assigns darks, whites, images to proper datasets in HDF5 file
     det = pg3_det
     try:
-        APS_devices.AD_setup_FrameType(
+        # APS_devices.AD_setup_FrameType(
+        AD_setup_FrameType(
             EPICS_PV_prefix["PG3 PointGrey Grasshopper3"], 
             scheme="DataExchange"
         )
@@ -464,7 +465,7 @@ def user_tomo_scan(*, acquire_time=0.01, iterations=1, delay_time_s=1.0, md=None
     det = pg3_det   # also set in tomo_scan()
     camera_size_x = det.cam.array_size.array_size_x.value
 
-    readout_time = 0.002        # estimate
+    readout_time = 0.003        # empirical estimate so we don't drop frames
     min_speed = 0.5             # Pete's estimate
     max_speed = 18              # top speed from other code examples
     number_of_projections = 1500
@@ -530,3 +531,13 @@ def user_tomo_scan(*, acquire_time=0.01, iterations=1, delay_time_s=1.0, md=None
         iterations, 
         time.time() - t00
     ))
+
+
+def series():
+    yield from user_tomo_scan(acquire_time=0.008)
+    yield from user_tomo_scan(acquire_time=0.01)
+    yield from user_tomo_scan(acquire_time=0.015)
+    yield from user_tomo_scan(acquire_time=0.02)
+    yield from user_tomo_scan(acquire_time=0.05)
+    yield from user_tomo_scan(acquire_time=0.1)
+    yield from user_tomo_scan(acquire_time=0.15)
