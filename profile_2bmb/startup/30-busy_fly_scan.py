@@ -106,7 +106,7 @@ def measure_flats(det, shutter, quantity, expected, samStage, samPos):
     yield from bps.mv(samStage, priorPosition)
 
 
-def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, samInPos=0, samOutDist=-3, acquire_time=0.01, md=None):
+def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, samInPos=0, samOutDist=-3, acquire_time=0.02, md=None):
     """
     standard tomography fly scan with BlueSky
     """
@@ -448,7 +448,7 @@ def calc_acquisition(blur_pixel, exposure_time, readout_time, camera_size_x, ang
 
 __tomo_scan_counter = 0       # used internally by user_tomo_scan
 
-def user_tomo_scan(*, acquire_time=0.01, iterations=1, delay_time_s=1.0, md=None):
+def user_tomo_scan(*, acquire_time=0.02, iterations=1, delay_time_s=1.0, md=None):
     """
     plan: user-facing plan to run tomography instrument
     
@@ -491,6 +491,8 @@ def user_tomo_scan(*, acquire_time=0.01, iterations=1, delay_time_s=1.0, md=None
 
     blur_delta = acquire_time * rotation_speed
     blur_pixel = (camera_size_x / 2.0) - ((camera_size_x / 2.0) * np.cos(blur_delta * np.pi /180.))
+    params["blur_delta"] = blur_delta
+    params["blur_pixel"] = blur_pixel
     
     print("computed rotation speed: {} degrees / s".format(rotation_speed))
     print("computed blur angle/image: {} degrees".format(blur_delta))
@@ -531,13 +533,3 @@ def user_tomo_scan(*, acquire_time=0.01, iterations=1, delay_time_s=1.0, md=None
         iterations, 
         time.time() - t00
     ))
-
-
-def series():
-    yield from user_tomo_scan(acquire_time=0.008)
-    yield from user_tomo_scan(acquire_time=0.01)
-    yield from user_tomo_scan(acquire_time=0.015)
-    yield from user_tomo_scan(acquire_time=0.02)
-    yield from user_tomo_scan(acquire_time=0.05)
-    yield from user_tomo_scan(acquire_time=0.1)
-    yield from user_tomo_scan(acquire_time=0.15)
