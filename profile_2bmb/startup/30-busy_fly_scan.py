@@ -448,7 +448,7 @@ def calc_acquisition(blur_pixel, exposure_time, readout_time, camera_size_x, ang
 
 __tomo_scan_counter = 0       # used internally by user_tomo_scan
 
-def user_tomo_scan(*, acquire_time=0.02, iterations=1, delay_time_s=1.0, md=None):
+def user_tomo_scan(*, acquire_time=0.02, iterations=1, delay_time_s=1.0, samOutDist=-3, md=None):
     """
     plan: user-facing plan to run tomography instrument
     
@@ -465,7 +465,7 @@ def user_tomo_scan(*, acquire_time=0.02, iterations=1, delay_time_s=1.0, md=None
     det = pg3_det   # also set in tomo_scan()
     camera_size_x = det.cam.array_size.array_size_x.value
 
-    readout_time = 0.003        # empirical estimate so we don't drop frames
+    readout_time = 0.004        # empirical estimate so we don't drop frames; was 0.003 but miss 1 frame with 0.1 s exposure time
     min_speed = 0.5             # Pete's estimate
     max_speed = 18              # top speed from other code examples
     number_of_projections = 1500
@@ -517,6 +517,7 @@ def user_tomo_scan(*, acquire_time=0.02, iterations=1, delay_time_s=1.0, md=None
             slewSpeed=rotation_speed, 
             acquire_time=acquire_time, 
             numProjPerSweep=number_of_projections,
+            samOutDist=samOutDist,
             md=_md
         )
         msg = "{}: iteration {} of {}: total time for iteration: {} s"
