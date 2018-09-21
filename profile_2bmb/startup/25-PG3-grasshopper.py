@@ -109,30 +109,39 @@ if False:   # run this code only as-needed
         scheme="DataExchange"
     )
 
+try:
+    _nm = "PG3 PointGrey Grasshopper3"
+    pg3_det = MyPointGreyDetector(
+        EPICS_PV_prefix[_nm], 
+        name="pg3_det")
 
-pg3_det = MyPointGreyDetector(
-    EPICS_PV_prefix["PG3 PointGrey Grasshopper3"], 
-    name="pg3_det")
+    # 2018-09-21, prj: maybe later, not now
+    # Consider issue #44: support the process plugin for darks and flats
+    #    configure pg3_det Image1 & PVA1 to use PROC1 output instead
 
-# Consider issue #44: support the process plugin for darks and flats
-#    configure pg3_det Image1 & PVA1 to use PROC1 output instead
+    #pg3_det.cam.stage_sigs["image_mode"] = "Single"
+    #pg3_det.cam.stage_sigs["array_counter"] = 0
+    pg3_det.cam.stage_sigs["gain"] = 0
+    pg3_det.cam.stage_sigs["auto_exposure_on_off"] = "Off"
+    pg3_det.cam.stage_sigs["auto_exposure_auto_mode"] = "Manual"
+    pg3_det.cam.stage_sigs["shutter_auto_mode"] = "Manual"
+    pg3_det.cam.stage_sigs["gain_auto_mode"] = "Manual"
+    pg3_det.cam.stage_sigs["trigger_mode_on_off"] = "Off"
+    pg3_det.cam.stage_sigs["trigger_mode_auto_mode"] = "Manual"
+    pg3_det.cam.stage_sigs["trigger_delay_on_off"] = "Off"
+    pg3_det.cam.stage_sigs["frame_rate_on_off"] = "Off"
+    pg3_det.cam.stage_sigs["frame_rate_auto_mode"] = "Manual"
+    pg3_det.read_attrs = ['hdf1']
+    pg3_det.pva1.stage_sigs["blocking_callbacks"] = "No"
+    del pg3_det.hdf1.stage_sigs["num_capture"]
 
-#pg3_det.cam.stage_sigs["image_mode"] = "Single"
-#pg3_det.cam.stage_sigs["array_counter"] = 0
-pg3_det.cam.stage_sigs["gain"] = 0
-pg3_det.cam.stage_sigs["auto_exposure_on_off"] = "Off"
-pg3_det.cam.stage_sigs["auto_exposure_auto_mode"] = "Manual"
-pg3_det.cam.stage_sigs["shutter_auto_mode"] = "Manual"
-pg3_det.cam.stage_sigs["gain_auto_mode"] = "Manual"
-pg3_det.cam.stage_sigs["trigger_mode_on_off"] = "Off"
-pg3_det.cam.stage_sigs["trigger_mode_auto_mode"] = "Manual"
-pg3_det.cam.stage_sigs["trigger_delay_on_off"] = "Off"
-pg3_det.cam.stage_sigs["frame_rate_on_off"] = "Off"
-pg3_det.cam.stage_sigs["frame_rate_auto_mode"] = "Manual"
-pg3_det.read_attrs = ['hdf1']
-pg3_det.pva1.stage_sigs["blocking_callbacks"] = "No"
-del pg3_det.hdf1.stage_sigs["num_capture"]
-
-pg3_det.hdf1.ensure_nonblocking() 
-pg3_det.image.ensure_nonblocking() 
-pg3_det.pva1.ensure_nonblocking() 
+    pg3_det.hdf1.ensure_nonblocking() 
+    pg3_det.image.ensure_nonblocking() 
+    pg3_det.pva1.ensure_nonblocking() 
+except TimeoutError as _exc:
+    print(
+        "{exc}\n !! Could not connect with area detector {nm} ({pre})".format(
+            nm = _nm, 
+            pre = EPICS_PV_prefix[_nm],
+            exc = _exc)
+        )
