@@ -5,14 +5,13 @@ import APS_BlueSky_tools
 # Set up default metadata
 
 
-@property
 def ipython_profile_name():
     """
     return the name of the current ipython profile or `None`
     
     Example (add to default RunEngine metadata)::
 
-        RE.md['ipython_profile'] = str(ipython_profile_name)
+        RE.md['ipython_profile'] = str(ipython_profile_name())
 
     """
     import IPython.paths
@@ -28,11 +27,10 @@ def ipython_profile_name():
 
 
 RE.md['beamline_id'] = '2-BM tomography'
-RE.md['ipython_profile'] = str(ipython_profile_name)
+RE.md['ipython_profile'] = str(ipython_profile_name())
 print("using profile: " + RE.md['ipython_profile'])
 
 try:
-    # IOC is off 2018-05-08 for switchgear maintenance
     prop_num = EpicsSignal("2bmS1:ProposalNumber", name="prop_num", string=True)
     RE.md['proposal_id'] = str(prop_num.value)
 except Exception as _exc:
