@@ -43,13 +43,13 @@ aps_current = aps.current
 
 if aps.inUserOperations:
     # no scans until A_shutter is open
-    ##fdc suspend_A_shutter = bluesky.suspenders.SuspendFloor(A_shutter.pss_state, 1)
+    suspend_A_shutter = bluesky.suspenders.SuspendFloor(A_shutter.pss_state, 1)
     #suspend_A_shutter.install(RE)
-    ##fdc RE.install_suspender(suspend_A_shutter)
+    RE.install_suspender(suspend_A_shutter)
 
     # no scans if aps.current is too low
-    ##fdc suspend_APS_current = bluesky.suspenders.SuspendFloor(aps_current, 2, resume_thresh=10)
-    ##fdc RE.install_suspender(suspend_APS_current)
+    suspend_APS_current = bluesky.suspenders.SuspendFloor(aps_current, 2, resume_thresh=10)
+    RE.install_suspender(suspend_APS_current)
     pass
 
 #pf4 = APS_devices.DualPf4FilterBox("2bmb:pf4:", name="pf4")

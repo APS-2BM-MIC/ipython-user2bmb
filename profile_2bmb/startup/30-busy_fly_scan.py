@@ -92,8 +92,7 @@ def measure_flats(det, shutter, quantity, expected, samStage, samPos):
     priorPosition = samStage.position
     yield from bps.sleep(1)     # arbitrary, shutter won't move without it
     yield from bps.mv(
-##fdc        shutter, "open",
-        shutter, "close",
+        shutter, "open",
         samStage, samPos,
         det.cam.trigger_mode, "Internal",
         det.cam.frame_type, 2,  # white
@@ -129,8 +128,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     # assigns darks, whites, images to proper datasets in HDF5 file
     det = pg3_det
     try:
-        # APS_devices.AD_setup_FrameType(
-        AD_setup_FrameType(
+        APS_devices.AD_setup_FrameType(
             EPICS_PV_prefix["PG3 PointGrey Grasshopper3"], 
             scheme="DataExchange"
         )
@@ -264,7 +262,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
             )
 
         # !!! moves the shutter !!!
-##fdc        yield from bps.abs_set(shutter, "open", group="shutter")
+        yield from bps.abs_set(shutter, "open", group="shutter")
 
         yield from bps.stop(rotStage)
         yield from motor_set_modulo(rotStage, 360.0)
