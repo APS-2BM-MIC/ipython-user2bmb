@@ -58,7 +58,7 @@ fi
 #####################################################################
 
 # IOC_CMD="../../bin/${EPICS_HOST_ARCH}/${IOC_BINARY} st.cmd"
-IOC_CMD="${IOC_BINARY} -d ${IOC_DATABASE}"
+IOC_CMD="${IOC_BINARY} -m P=${IOC_NAME}: -d ${IOC_DATABASE}"
 
 screenpid() {
         if [ -z ${SCREEN_PID} ] ; then

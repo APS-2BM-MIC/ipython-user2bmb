@@ -1,18 +1,20 @@
 # file: mona.db
 # purpose: provide PVs for MONA modules to advise BlueSky
+# run:  softIoc -m P=2bmbmona: -d ./mona.db
 
 
-#The configured quality checks are:
-#
-#"data" : [ "mean", "st_dev", "stat_mean"]
-
-record(bo, "2bmbmona:StopAcquisition") {
+record(bo, "$(P)StopAcquisition") {
     # MONA module will set this
     # BlueSky will clear this once acquisition has been stopped
     field(DESC, "MONA modules wants scan to end")
     field(ZNAM, "Ok")
     field(ONAM, "Stop")
 }
+
+
+#The configured quality checks are:
+#
+#"data" : [ "mean", "st_dev", "stat_mean"]
 
 # 2018-11-19, PRJ:  Why are these named for the PG3 detector and not project MONA?
 
