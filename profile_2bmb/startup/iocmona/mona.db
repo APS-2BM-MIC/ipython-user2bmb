@@ -19,6 +19,8 @@ record(bo, "mona:StopAcquisition") {
     field(ONAM, "Stop")
 }
 
+# 2018-11-19, PRJ:  Why are these tied to the PG3 detector and not project MONA?
+
 record(ao, "2bmbPG3:data_mean_ctr") {
     # number of frames that have failed the mean quality check
     field(DESC, "PG3 failed failed mean quality check")
