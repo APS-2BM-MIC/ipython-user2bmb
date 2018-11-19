@@ -1,0 +1,45 @@
+# file: mona.db
+# purpose: provide PVs for MONA modules to advise BlueSky
+# to run:  ./run_mona_ioc.sh
+
+# watch these PVs with this command:
+# APSshare/anaconda/x86_64/bin/pvview 2bmbPG3:data_mean_ctr 2bmbPG3:data_mean_res 2bmbPG3:data_st_dev_ctr 2bmbPG3:data_st_dev_res 2bmbPG3:data_stat_mean_ctr 2bmbPG3:data_stat_mean_res &
+
+
+
+#The configured quality checks are:
+#
+#"data" : [ "mean", "st_dev", "stat_mean"]
+
+record(bo, "mona:StopAcquisition") {
+    # MONA module will set this
+    # BlueSky will clear this once acquisition has been stopped
+    field(DESC, "MONA modules wants scan to end")
+    field(ZNAM, "Ok")
+    field(ONAM, "Stop")
+}
+
+record(ao, "2bmbPG3:data_mean_ctr") {
+    # number of frames that have failed the mean quality check
+    field(DESC, "PG3 failed failed mean quality check")
+}
+
+record(ao, "2bmbPG3:data_mean_res") {
+    field(DESC, "PG3 ...")
+}
+
+record(ao, "2bmbPG3:data_st_dev_ctr") {
+    field(DESC, "PG3 ...")
+}
+
+record(ao, "2bmbPG3:data_st_dev_res") {
+    field(DESC, "PG3 ...")
+}
+
+record(ao, "2bmbPG3:data_stat_mean_ctr") {
+    field(DESC, "PG3 ...")
+}
+
+record(ao, "2bmbPG3:data_stat_mean_res") {
+    field(DESC, "PG3 ...")
+}
