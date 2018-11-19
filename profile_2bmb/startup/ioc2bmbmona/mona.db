@@ -12,6 +12,15 @@ record(bo, "$(P)StopAcquisition") {
 }
 
 
+record(mbbo, "2bm:instrument_in_use") {
+    # instrument team sets this
+    field(DESC, "instrument using beam now")
+    field(ZRST, "none")
+    field(ONST, "2-BM-A")
+    field(TWST, "2-BM-B")
+}
+
+
 #The configured quality checks are:
 #
 #"data" : [ "mean", "st_dev", "stat_mean"]
