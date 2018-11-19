@@ -13,10 +13,13 @@
 EPICS_HOST_ARCH=linux-x86_64
 #!EPICS_HOST_ARCH=linux-x86_64-debug
 
+# any version since 3.14.12 will do, perhaps even older
+EPICS_BASE=/APSshare/epics/base-7.0.1.1
+
 IOC_NAME=2bmbmona
 # The name of the IOC binary isn't necessarily the same as the name of the IOC
 # IOC_BINARY=softIoc
-IOC_BINARY=/APSshare/epics/base-7.0.1.1/bin/linux-x86_64/softIoc
+IOC_BINARY=${EPICS_BASE}/bin/${EPICS_HOST_ARCH}/softIoc
 IOC_DATABASE=./mona.db
 
 # Change YES to NO in the following line to disable screen-PID lookup 
@@ -61,7 +64,7 @@ fi
 IOC_CMD="${IOC_BINARY} -m P=${IOC_NAME}: -d ${IOC_DATABASE}"
 
 screenpid() {
-        if [ -z ${SCREEN_PID} ] ; then
+    if [ -z ${SCREEN_PID} ] ; then
         ${ECHO}
     else
         ${ECHO} " in a screen session (pid=${SCREEN_PID})"
@@ -76,61 +79,61 @@ checkpid() {
 
     if [ "${IOC_PID}" != "" ] ; then
         # Assume the IOC is down until proven otherwise
-    IOC_DOWN=1
+        IOC_DOWN=1
 
-    # At least one instance of the IOC binary is running; 
-    # Find the binary that is associated with this script/IOC
+        # At least one instance of the IOC binary is running; 
+        # Find the binary that is associated with this script/IOC
         for pid in ${IOC_PID}; do
-        BIN_CWD=`${READLINK} /proc/${pid}/cwd`
-        IOC_CWD=`${READLINK} -f ${IOC_STARTUP_DIR}`
-        
-        if [ $BIN_CWD == $IOC_CWD ] ; then
-        # The IOC is running; the binary with PID=$pid is the IOC that was run from $IOC_STARTUP_DIR
-        IOC_PID=${pid}
-        IOC_DOWN=0
-        
-        SCREEN_PID=""
+            BIN_CWD=`${READLINK} /proc/${pid}/cwd`
+            IOC_CWD=`${READLINK} -f ${IOC_STARTUP_DIR}`
+            
+            if [ $BIN_CWD == $IOC_CWD ] ; then
+                # The IOC is running; the binary with PID=$pid is the IOC that was run from $IOC_STARTUP_DIR
+                IOC_PID=${pid}
+                IOC_DOWN=0
+                
+                SCREEN_PID=""
 
                 if [ ${GET_SCREEN_PID} == "YES" ]
-        then
-            # Get the PID of the parent of the IOC (shell or screen)
-            P_PID=`${PS} -p ${IOC_PID} -o ppid=`
+                then
+                    # Get the PID of the parent of the IOC (shell or screen)
+                    P_PID=`${PS} -p ${IOC_PID} -o ppid=`
+                    
+                    # Get the PID of the grandparent of the IOC (sshd, screen, or ???)
+                    GP_PID=`${PS} -p ${P_PID} -o ppid=`
+
+                    #!${ECHO} "P_PID=${P_PID}, GP_PID=${GP_PID}"
+
+                    # Get the screen PIDs
+                    S_PIDS=`${PGREP} screen`
+                
+                    for s_pid in ${S_PIDS}
+                    do
+                        #!${ECHO} ${s_pid}
+
+                        if [ ${s_pid} == ${P_PID} ] ; then
+                            SCREEN_PID=${s_pid}
+                            break
+                        fi
+                
+                        if [ ${s_pid} == ${GP_PID} ] ; then
+                            SCREEN_PID=${s_pid}
+                            break
+                        fi
+                
+                    done
+                fi
             
-            # Get the PID of the grandparent of the IOC (sshd, screen, or ???)
-            GP_PID=`${PS} -p ${P_PID} -o ppid=`
-
-            #!${ECHO} "P_PID=${P_PID}, GP_PID=${GP_PID}"
-
-            # Get the screen PIDs
-            S_PIDS=`${PGREP} screen`
-        
-            for s_pid in ${S_PIDS}
-            do
-                #!${ECHO} ${s_pid}
-
-                if [ ${s_pid} == ${P_PID} ] ; then
-                SCREEN_PID=${s_pid}
                 break
-                    fi
-        
-                if [ ${s_pid} == ${GP_PID} ] ; then
-                SCREEN_PID=${s_pid}
-                break
-                    fi
-        
-            done
-        fi
-        
-        break
-        #else
-        #    ${ECHO} "PATHS are different"
-        #    ${ECHO} ${BIN_CWD}
-        #    ${ECHO} ${IOC_CWD}
-        fi
-    done
+                #else
+                #    ${ECHO} "PATHS are different"
+                #    ${ECHO} ${BIN_CWD}
+                #    ${ECHO} ${IOC_CWD}
+            fi
+        done
     else
         # IOC is not running
-    IOC_DOWN=1
+        IOC_DOWN=1
     fi
 
     return ${IOC_DOWN}
@@ -139,19 +142,19 @@ checkpid() {
 start() {
     if checkpid; then
         ${ECHO} -n "${IOC_NAME} is already running (pid=${IOC_PID})"
-    screenpid
+        screenpid
     else
         ${ECHO} "Starting ${IOC_NAME}"
         cd ${IOC_STARTUP_DIR}
-    # Run this shell script (IOC) inside a screen session
-    ${SCREEN} -dm -S ioc${IOC_NAME} -h 5000 ${IOC_CMD}
+        # Run this shell script (IOC) inside a screen session
+        ${SCREEN} -dm -S ioc${IOC_NAME} -h 5000 ${IOC_CMD}
     fi
 }
 
 stop() {
     if checkpid; then
         ${ECHO} "Stopping ${IOC_NAME} (pid=${IOC_PID})"
-    ${KILL} ${IOC_PID}
+        ${KILL} ${IOC_PID}
     else
         ${ECHO} "${IOC_NAME} is not running"
     fi
@@ -174,10 +177,10 @@ status() {
 console() {
     if checkpid; then
         ${ECHO} "Connecting to ${IOC_NAME}'s screen session"
-    # The -r flag will only connect if no one is attached to the session
-    #!${SCREEN} -r ioc${IOC_NAME}
-    # The -x flag will connect even if someone is attached to the session
-    ${SCREEN} -x ioc${IOC_NAME}
+        # The -r flag will only connect if no one is attached to the session
+        #!${SCREEN} -r ioc${IOC_NAME}
+        # The -x flag will connect even if someone is attached to the session
+        ${SCREEN} -x ioc${IOC_NAME}
     else
         ${ECHO} "${IOC_NAME} is not running"
     fi
