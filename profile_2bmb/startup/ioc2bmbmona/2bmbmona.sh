@@ -2,6 +2,9 @@
 #
 # description: start/stop/restart an EPICS IOC in a screen session
 #
+# cron task entry:
+#    # keep IOC running: 2bmbmona:
+#    */5 * * * * /home/beams/USER2BMB/.ipython/profile_2bmb/startup/ioc2bmbmona/2bmbmona.csh checkup 2>&1 /dev/null
 
 # Manually set IOC_STARTUP_DIR if this script will reside somewhere other than iocxxx
 #!IOC_STARTUP_DIR=/home/username/epics/ioc/synApps/xxx/iocBoot/iocxxx
