@@ -13,3 +13,6 @@ mViewer.log
 .project
 .pydevproject
 .settings
+
+# VIM swap file
+.*.swp
