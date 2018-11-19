@@ -1,241 +1,179 @@
-#!/bin/sh
+#!/bin/bash
+# init file for soft IOC 2bmbmona
 #
-# description: start/stop/restart an EPICS IOC in a screen session
+# chkconfig: - 98 98
+# description: softIoc management for 2bmbmona
 #
-# cron task entry:
-#    # keep IOC running: 2bmbmona:
-#    */5 * * * * /home/beams/USER2BMB/.ipython/profile_2bmb/startup/ioc2bmbmona/2bmbmona.csh checkup 2>&1 /dev/null
-
-# Manually set IOC_STARTUP_DIR if this script will reside somewhere other than iocxxx
-#!IOC_STARTUP_DIR=/home/username/epics/ioc/synApps/xxx/iocBoot/iocxxx
-
-# Set EPICS_HOST_ARCH if the env var isn't already set properly for this IOC
-EPICS_HOST_ARCH=linux-x86_64
-#!EPICS_HOST_ARCH=linux-x86_64-debug
-
-# any version since 3.14.12 will do, perhaps even older
-EPICS_BASE=/APSshare/epics/base-7.0.1.1
+# processname: 2bmbmona
 
 IOC_NAME=2bmbmona
-# The name of the IOC binary isn't necessarily the same as the name of the IOC
-# IOC_BINARY=softIoc
-IOC_BINARY=${EPICS_BASE}/bin/${EPICS_HOST_ARCH}/softIoc
-IOC_DATABASE=./mona.db
+EPICS_HOST_ARCH=linux-x86_64
+EPICS_BASE=/APSshare/epics/base-7.0.1.1
 
-# Change YES to NO in the following line to disable screen-PID lookup 
-GET_SCREEN_PID=YES
+EXECUTABLE_COMMAND=${EPICS_BASE}/bin/${EPICS_HOST_ARCH}/softIoc
+COMMAND_OPTIONS="-m P=${IOC_NAME}:"
+COMMAND_OPTIONS+=" -d ./mona.db"
 
-# Commands needed by this script
-ECHO=echo
-ID=id
-PGREP=pgrep
-SCREEN=screen
-KILL=kill
-BASENAME=basename
-DIRNAME=dirname
-READLINK=readlink
-PS=ps
-# Explicitly define paths to commands if commands aren't found
-#!ECHO=/bin/echo
-#!ID=/usr/bin/id
-#!PGREP=/usr/bin/pgrep
-#!SCREEN=/usr/bin/screen
-#!KILL=/bin/kill
-#!BASENAME=/bin/basename
-#!DIRNAME=/usr/bin/dirname
-#!READLINK=/bin/readlink
-#!PS=/bin/ps
-
-#####################################################################
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 SNAME=$0
 SELECTION=$1
 
-if [ -z "$IOC_STARTUP_DIR" ]
-then
-    # If no startup dir is specified, assume this script resides in the IOC's startup directory
-    IOC_STARTUP_DIR="$(${DIRNAME} ${SNAME})"
-fi
-#!${ECHO} ${IOC_STARTUP_DIR}
+PROJECT_DIR=`dirname ${SNAME}`
+LOGFILE=${PROJECT_DIR}/log-${IOC_NAME}.txt
+SCREEN_COMMAND="screen -dmS ioc${IOC_NAME} -h 5000 ${EXECUTABLE_COMMAND} ${COMMAND_OPTIONS}"
+REPORT_TEXT="${IOC_NAME}"
+RETVAL=0
 
-#####################################################################
 
-# IOC_CMD="../../bin/${EPICS_HOST_ARCH}/${IOC_BINARY} st.cmd"
-IOC_CMD="${IOC_BINARY} -m P=${IOC_NAME}: -d ${IOC_DATABASE}"
+get_sockname(){
+    # SOCKNAME=${PID}.ioc${IOC_NAME}
+    SOCKNAME=`screen -ls | grep ioc${IOC_NAME} | awk '{print $1;}'`
+}
 
-screenpid() {
-    if [ -z ${SCREEN_PID} ] ; then
-        ${ECHO}
+
+get_pid(){
+    get_sockname
+    if [ "${SOCKNAME}" == "" ]; then
+        PID=""
     else
-        ${ECHO} " in a screen session (pid=${SCREEN_PID})"
+        PID=`echo ${SOCKNAME} | cut -d "." -f1`
     fi
 }
 
-checkpid() {
-    MY_UID=`${ID} -u`
-    # The '\$' is needed in the pgrep pattern to select the IOC name, but not this shell script file
-    IOC_PID=`${PGREP} ${IOC_BINARY}\$ -u ${MY_UID}`
-    #!${ECHO} "IOC_PID=${IOC_PID}"
 
-    if [ "${IOC_PID}" != "" ] ; then
-        # Assume the IOC is down until proven otherwise
-        IOC_DOWN=1
-
-        # At least one instance of the IOC binary is running; 
-        # Find the binary that is associated with this script/IOC
-        for pid in ${IOC_PID}; do
-            BIN_CWD=`${READLINK} /proc/${pid}/cwd`
-            IOC_CWD=`${READLINK} -f ${IOC_STARTUP_DIR}`
-            
-            if [ $BIN_CWD == $IOC_CWD ] ; then
-                # The IOC is running; the binary with PID=$pid is the IOC that was run from $IOC_STARTUP_DIR
-                IOC_PID=${pid}
-                IOC_DOWN=0
-                
-                SCREEN_PID=""
-
-                if [ ${GET_SCREEN_PID} == "YES" ]
-                then
-                    # Get the PID of the parent of the IOC (shell or screen)
-                    P_PID=`${PS} -p ${IOC_PID} -o ppid=`
-                    
-                    # Get the PID of the grandparent of the IOC (sshd, screen, or ???)
-                    GP_PID=`${PS} -p ${P_PID} -o ppid=`
-
-                    #!${ECHO} "P_PID=${P_PID}, GP_PID=${GP_PID}"
-
-                    # Get the screen PIDs
-                    S_PIDS=`${PGREP} screen`
-                
-                    for s_pid in ${S_PIDS}
-                    do
-                        #!${ECHO} ${s_pid}
-
-                        if [ ${s_pid} == ${P_PID} ] ; then
-                            SCREEN_PID=${s_pid}
-                            break
-                        fi
-                
-                        if [ ${s_pid} == ${GP_PID} ] ; then
-                            SCREEN_PID=${s_pid}
-                            break
-                        fi
-                
-                    done
-                fi
-            
-                break
-                #else
-                #    ${ECHO} "PATHS are different"
-                #    ${ECHO} ${BIN_CWD}
-                #    ${ECHO} ${IOC_CWD}
-            fi
-        done
-    else
-        # IOC is not running
-        IOC_DOWN=1
-    fi
-
-    return ${IOC_DOWN}
+caget_test(){
+    # TODO: verify responsiveness by testing with caget
+    return 0
 }
 
-start() {
-    if checkpid; then
-        ${ECHO} -n "${IOC_NAME} is already running (pid=${IOC_PID})"
-        screenpid
+
+check_pid_running(){
+    get_pid
+    if [ "${PID}" == "" ]; then
+        # no PID found
+        RETVAL=1
     else
-        ${ECHO} "Starting ${IOC_NAME}"
-        cd ${IOC_STARTUP_DIR}
-        # Run this shell script (IOC) inside a screen session
-        ${SCREEN} -dm -S ioc${IOC_NAME} -h 5000 ${IOC_CMD}
+        # found a PID with our process name attached
+        caget_test
+        RETVAL=0
+    fi
+    return ${RETVAL}
+}
+
+
+start(){
+    if check_pid_running; then
+        msg="# [$0 `/bin/date`] running IOC with PID=${PID}: ${REPORT_TEXT}"
+        /bin/echo ${msg} 2>&1 >> ${LOGFILE} &
+        /bin/echo ${msg}
+    else
+        cd ${PROJECT_DIR}
+        ${SCREEN_COMMAND} 2>&1 >> ${LOGFILE} &
+        sleep 1
+        get_pid
+        msg="# [$0 `/bin/date`] started ${REPORT_TEXT}"
+        msg+=" PID=${PID}"
+        msg+=" USER=${USER}"
+        msg+=" HOST=${HOST}"
+        /bin/echo ${msg} 2>&1 >> ${LOGFILE} &
+        /bin/echo ${msg}
     fi
 }
 
-stop() {
-    if checkpid; then
-        ${ECHO} "Stopping ${IOC_NAME} (pid=${IOC_PID})"
-        ${KILL} ${IOC_PID}
+
+stop(){
+    if check_pid_running; then
+        kill ${PID}
+        msg="# [$0 `/bin/date`] stopped ${PID}: ${REPORT_TEXT}"
+        /bin/echo ${msg} 2>&1 >> ${LOGFILE} &
+        /bin/echo ${msg}
     else
-        ${ECHO} "${IOC_NAME} is not running"
+        msg="# [$0 `/bin/date`] not running ${PID}: ${REPORT_TEXT}"
+        echo ${msg} 2>&1 >> ${LOGFILE} &
     fi
 }
 
-restart() {
+
+restart(){
     stop
     start
 }
 
+
 status() {
-    if checkpid; then
-        ${ECHO} -n "${IOC_NAME} is running (pid=${IOC_PID})"
-        screenpid
+    if check_pid_running; then
+        echo "${IOC_NAME} is running PID=${PID} SOCKNAME=${SOCKNAME}"
     else
-        ${ECHO} "${IOC_NAME} is not running"
+        echo "${IOC_NAME} is not running"
     fi
 }
 
-console() {
-    if checkpid; then
-        ${ECHO} "Connecting to ${IOC_NAME}'s screen session"
-        # The -r flag will only connect if no one is attached to the session
-        #!${SCREEN} -r ioc${IOC_NAME}
-        # The -x flag will connect even if someone is attached to the session
-        ${SCREEN} -x ioc${IOC_NAME}
+
+console(){
+    if check_pid_running; then
+        cd ${PROJECT_DIR}
+        screen -r ${SOCKNAME}
     else
-        ${ECHO} "${IOC_NAME} is not running"
+        msg="# [$0 `/bin/date`] no such IOC screen process found"
+        msg+=": ioc${IOC_NAME}"
+        echo ${msg}
+        echo ${msg} 2>&1 >> ${LOGFILE} &
     fi
 }
 
-run() {
-    if checkpid; then
-        ${ECHO} -n "${IOC_NAME} is already running (pid=${IOC_PID})"
-        screenpid
-    else
-        ${ECHO} "Starting ${IOC_NAME}"
-        cd ${IOC_STARTUP_DIR}
-        # Run shell script outside of a screen session, helpful for debugging
-        ${IOC_CMD}
-    fi
-}
 
-usage() {
-    ${ECHO} "Usage: $(${BASENAME} ${SNAME}) {start|stop|restart|status|console|run}"
-}
+checkup(){
+    #=====================
+    # call periodically (every 5 minutes) to see if IOC is running
+    #=====================
+    #	     field	    allowed values
+    #	   -----	  --------------
+    #	   minute	  0-59
+    #	   hour 	  0-23
+    #	   day of month   1-31
+    #	   month	  1-12 (or names, see below)
+    #	   day of week    0-7 (0 or 7 is Sun, or use names)
+    #
+    # */5 * * * * /full/path/to/this/script.sh checkup 2>&1 > /dev/null
 
-#####################################################################
-
-if [ ! -d ${IOC_STARTUP_DIR} ]
-then
-    ${ECHO} "Error: ${IOC_STARTUP_DIR} doesn't exist."
-    ${ECHO} "IOC_STARTUP_DIR in ${SNAME} needs to be corrected."
-else
-    case ${SELECTION} in
-        start)
-            start
-        ;;
-
-        stop | kill)
-            stop
-        ;;
-
-        restart)
-            restart
-        ;;
-
-        status)
-            status
-        ;;
+    check_pid_running
+    RV=${RETVAL}
+    # echo "RETVAL=${RV}"
     
-        console)
-            console
-        ;;
+    msg="# [$0 `/bin/date`] "
+    if [ $RV == 0 ]; then
+        msg+="running fine, so it seems"
+        echo ${msg} 2>&1 > /dev/null
+    else
+        msg+="could not identify running process ${PID}"
+        msg+=", starting new process"
+        echo ${msg} 2>&1 > /dev/null
+        start
+    fi
+}
 
-        run)
-            run
-        ;;
 
-        *)
-        usage
-        ;;
-    esac
-fi
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart)
+    restart
+    ;;
+  status)
+    status
+    ;;
+  checkup)
+    checkup
+    ;;
+  console)
+    console
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart|status|checkup|console}"
+    exit 1
+esac
