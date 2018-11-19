@@ -8,7 +8,7 @@ EPICS_PV_prefix = {}
 
 class MonaModuleSignals(Device):
     # per ./mona.db
-    stop_acquisition = EpicsSignal("mona:StopAcquisition")
+    stop_acquisition = EpicsSignal("2bmbmona:StopAcquisition")
 
 
 class ExperimentInfo(Device):
