@@ -34,6 +34,21 @@ except Exception as _exc:
 
 
 mona = MonaModuleSignals(name="mona")
+instrument_in_use = EpicsSignalRO(
+    "2bm:instrument_in_use", 
+    name="instrument_in_use", 
+    string=True)
+
+# pause if this value changes in our session
+# note: this suspender is designed by us to NEVER RESUME
+suspend_instrument_in_use = SuspendAndLatchStringMismatched(instrument_in_use)
+RE.install_suspender(suspend_instrument_in_use)
+
+
+@property
+def using_beam_in_2bmb():
+    return instrument_in_use.value == "2-BM-B"
+
 
 aps = APS_devices.ApsMachineParametersDevice(name="APS")
 sd.baseline.append(aps)
@@ -41,7 +56,7 @@ sd.baseline.append(aps)
 aps_current = aps.current
 #sd.monitors.append(aps_current)
 
-if aps.inUserOperations:
+if aps.inUserOperations and using_beam_in_2bmb:
     # no scans until A_shutter is open
     suspend_A_shutter = bluesky.suspenders.SuspendFloor(A_shutter.pss_state, 1)
     #suspend_A_shutter.install(RE)
