@@ -3,7 +3,7 @@
 # description: start/stop/restart an EPICS IOC in a screen session
 #
 
-# Manually set IOC_STARTUP_DIR if xxx.sh will reside somewhere other than iocxxx
+# Manually set IOC_STARTUP_DIR if this script will reside somewhere other than iocxxx
 #!IOC_STARTUP_DIR=/home/username/epics/ioc/synApps/xxx/iocBoot/iocxxx
 
 # Set EPICS_HOST_ARCH if the env var isn't already set properly for this IOC
@@ -12,7 +12,9 @@ EPICS_HOST_ARCH=linux-x86_64
 
 IOC_NAME=2bmbmona
 # The name of the IOC binary isn't necessarily the same as the name of the IOC
-IOC_BINARY=softIoc
+# IOC_BINARY=softIoc
+IOC_BINARY=/APSshare/epics/base-7.0.1.1/bin/linux-x86_64/softIoc
+IOC_DATABASE=./mona.db
 
 # Change YES to NO in the following line to disable screen-PID lookup 
 GET_SCREEN_PID=YES
@@ -53,7 +55,7 @@ fi
 #####################################################################
 
 # IOC_CMD="../../bin/${EPICS_HOST_ARCH}/${IOC_BINARY} st.cmd"
-IOC_CMD="./start_ioc"
+IOC_CMD="${IOC_BINARY} -d ${IOC_DATABASE}"
 
 screenpid() {
         if [ -z ${SCREEN_PID} ] ; then
@@ -65,7 +67,7 @@ screenpid() {
 
 checkpid() {
     MY_UID=`${ID} -u`
-    # The '\$' is needed in the pgrep pattern to select 2bmbPG3, but not 2bmbPG3.sh
+    # The '\$' is needed in the pgrep pattern to select the IOC name, but not this shell script file
     IOC_PID=`${PGREP} ${IOC_BINARY}\$ -u ${MY_UID}`
     #!${ECHO} "IOC_PID=${IOC_PID}"
 
@@ -138,7 +140,7 @@ start() {
     else
         ${ECHO} "Starting ${IOC_NAME}"
         cd ${IOC_STARTUP_DIR}
-    # Run 2bmbPG3 inside a screen session
+    # Run this shell script (IOC) inside a screen session
     ${SCREEN} -dm -S ioc${IOC_NAME} -h 5000 ${IOC_CMD}
     fi
 }
@@ -185,7 +187,7 @@ run() {
     else
         ${ECHO} "Starting ${IOC_NAME}"
         cd ${IOC_STARTUP_DIR}
-        # Run 2bmbPG3 outside of a screen session, which is helpful for debugging
+        # Run shell script outside of a screen session, helpful for debugging
         ${IOC_CMD}
     fi
 }
