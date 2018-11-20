@@ -36,18 +36,25 @@ except Exception as _exc:
 mona = MonaModuleSignals(name="mona")
 instrument_in_use = EpicsSignalRO(
     "2bm:instrument_in_use", 
-    name="instrument_in_use", 
-    string=True)
+    name="instrument_in_use")
 
 # pause if this value changes in our session
 # note: this suspender is designed by us to NEVER RESUME
-suspend_instrument_in_use = SuspendAndLatchStringMismatched(instrument_in_use)
+suspend_instrument_in_use = SuspendAndLatchWhenChanged(instrument_in_use)
 RE.install_suspender(suspend_instrument_in_use)
 
+if False:
+    # pete's testing items (not EPICS, just ophyd)
+    import ophyd.sim
+    m1 = ophyd.sim.motor
+    sig = ophyd.sim.noisy_det   # Gaussian(m1), sigma=1, x0=0, 10% noise, max=1
+    #  RE(bp.scan([sig], m1, -3, 3, 12))
 
-@property
+
 def using_beam_in_2bmb():
-    return instrument_in_use.value == "2-BM-B"
+    v = instrument_in_use.value
+    enums = instrument_in_use.enum_strs
+    return enums[v] == "2-BM-B"
 
 
 aps = APS_devices.ApsMachineParametersDevice(name="APS")
@@ -56,7 +63,7 @@ sd.baseline.append(aps)
 aps_current = aps.current
 #sd.monitors.append(aps_current)
 
-if aps.inUserOperations and using_beam_in_2bmb:
+if aps.inUserOperations:        # and using_beam_in_2bmb():
     # no scans until A_shutter is open
     suspend_A_shutter = bluesky.suspenders.SuspendFloor(A_shutter.pss_state, 1)
     #suspend_A_shutter.install(RE)
