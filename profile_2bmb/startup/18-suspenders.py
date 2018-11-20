@@ -5,19 +5,20 @@ print(__file__)
 from bluesky.suspenders import SuspenderBase
 
 
-class SuspendAndLatchStringMismatched(SuspenderBase):
+class SuspendAndLatchWhenChanged(SuspenderBase):
     """
     Bluesky suspender
     
-    Do not resume when the monitored string deviates from the expected.
+    Do not resume when the monitored value deviates from the expected.
     """
     # see: http://nsls-ii.github.io/bluesky/_modules/bluesky/suspenders.html#SuspendCeil
     
     def __init__(self, signal, *, 
-        match_string=None, 
-        sleep=0, pre_plan=None, post_plan=None, tripped_message=''):
+                expected_value=None, 
+                sleep=0, pre_plan=None, post_plan=None, tripped_message='',
+                **kwargs):
         
-        self.match_string = match_string or signal.value
+        self.expected_value = expected_value or signal.value
         super().__init__(signal, 
             sleep=sleep, 
             pre_plan=pre_plan, 
@@ -26,16 +27,19 @@ class SuspendAndLatchStringMismatched(SuspenderBase):
             **kwargs)
 
     def _should_suspend(self, value):
-        return value != self.match_string
+        return value != self.expected_value
 
     def _should_resume(self, value):
-        # return value == self.match_string
+        # return value == self.expected_value
         return False    # latching
 
     def _get_justification(self):
         if not self.tripped:
             return ''
 
-        just = 'Signal {} is not "{}"'.format(self._sig.name, self.match_string)
+        just = 'Signal {}, got "{}", expected "{}"'.format(
+            self._sig.name,
+            self._sig.get(),
+            self.expected_value)
         return ': '.join(s for s in (just, self._tripped_message)
                          if s)
