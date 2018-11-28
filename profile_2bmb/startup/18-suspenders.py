@@ -53,6 +53,6 @@ class SuspendWhenChanged(SuspenderBase):
             self._sig.get(),
             self.expected_value)
         if not self.allow_resume:
-            just += '.  "RE.abort" and then restart session to use new configuration.'
+            just += '.  "RE.abort()" and then restart session to use new configuration.'
         return ': '.join(s for s in (just, self._tripped_message)
                          if s)
