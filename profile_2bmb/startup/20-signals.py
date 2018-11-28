@@ -54,25 +54,29 @@ if operations_in_2bmb() and aps.inUserOperations:
     # record storage ring current as additional data stream
     sd.monitors.append(aps.current)
 
-    try:
-        A_shutter = APS_devices.ApsPssShutterWithStatus(
-            "2bma:A_shutter", 
-            "PA:02BM:STA_A_FES_OPEN_PL", 
-            name="A_shutter")
-        B_shutter = APS_devices.ApsPssShutterWithStatus(
-            "2bma:B_shutter", 
-            "PA:02BM:STA_B_SBS_OPEN_PL", 
-            name="B_shutter")
-    except Exception as _exc:
-        print(_exc)
+    A_shutter = APS_devices.ApsPssShutterWithStatus(
+        "2bma:A_shutter", 
+        "PA:02BM:STA_A_FES_OPEN_PL", 
+        name="A_shutter")
+    B_shutter = APS_devices.ApsPssShutterWithStatus(
+        "2bma:B_shutter", 
+        "PA:02BM:STA_B_SBS_OPEN_PL", 
+        name="B_shutter")
+    fast_shutter = APS_devices.EpicsMotorShutter(
+        "2bma:m23",
+        name="fast_shutter")
+    fast_shutter.closed_position = 0.0
+    fast_shutter.open_position = 1.0
 
     # no scans until A_shutter is open
-    suspend_A_shutter = bluesky.suspenders.SuspendFloor(A_shutter.pss_state, 1)
+    suspend_A_shutter = bluesky.suspenders.SuspendFloor(
+        A_shutter.pss_state, 1)
     #suspend_A_shutter.install(RE)
     RE.install_suspender(suspend_A_shutter)
 
     # no scans if aps.current is too low
-    suspend_APS_current = bluesky.suspenders.SuspendFloor(aps_current, 2, resume_thresh=10)
+    suspend_APS_current = bluesky.suspenders.SuspendFloor(
+        aps_current, 2, resume_thresh=10)
     RE.install_suspender(suspend_APS_current)
 
 else:
@@ -81,6 +85,7 @@ else:
     # define the simulated shutter objects here
     A_shutter = APS_devices.SimulatedApsPssShutterWithStatus(name="A_shutter")
     B_shutter = APS_devices.SimulatedApsPssShutterWithStatus(name="B_shutter")
+    fast_shutter = APS_devices.SimulatedApsPssShutterWithStatus(name="fast_shutter")
 
     # pete's testing items (not EPICS, just ophyd)
     import ophyd.sim
