@@ -186,6 +186,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.mv(rotStage.velocity, ROT_STAGE_FAST_SPEED)
         yield from motor_set_modulo(rotStage, 360.0)
         yield from bps.mv(rotStage, 0.00)
+        yield from bps.mv(mona.experiment_state, "idle")
 
     det.cam.stage_sigs["num_images"] = numProjPerSweep
     det.cam.stage_sigs["trigger_mode"] = "Overlapped"
@@ -236,6 +237,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
     @bpp.run_decorator(md=_md)
     @bpp.finalize_decorator(cleanup)
     def _internal_tomo():
+        yield from bps.mv(mona.experiment_state, "initializing")
         yield from bps.monitor(rotStage.user_readback, name="rotation_monitor")
         yield from bps.monitor(det.image.array_counter, name="array_counter_monitor")
         yield from bps.monitor(tomo_stage.x, name="tomo_stage_x_monitor")
@@ -251,6 +253,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         )
 
         if MEASURE_DARKS_AND_FLATS:
+            yield from bps.mv(mona.experiment_state, "frame_other")
             yield from measure_darks(det, shutter, NUM_DARK_FRAMES, NUM_DARK_FRAMES)
 
             yield from measure_flats(
@@ -296,6 +299,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
 
         # run the fly scan
         logging.debug("before fly")
+        yield from bps.mv(mona.experiment_state, "frame_image")
         yield from bps.mv(rotStage.velocity, slewSpeed)
         yield from bps.wait(group='shutter')    # shutters are slooow, MUST be done now
 
@@ -310,6 +314,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         yield from bps.wait(group='fly')
         print(datetime.now(), "fly time: {} s".format(time.time()-t0))
         #yield from bps.abs_set(det.cam.acquire, 0)
+        yield from bps.mv(mona.experiment_state, "acq_done")
         logging.debug("after fly")
 
         # read the camera
@@ -320,6 +325,7 @@ def tomo_scan(*, start=0, stop=180, numProjPerSweep=1500, slewSpeed=5, accl=1, s
         
         hdf5_file_name = det.hdf1.full_file_name.value
         addThetaArray(hdf5_file_name, start, stop, _delta)
+        yield from bps.mv(mona.experiment_state, "idle")
 
     return (yield from _internal_tomo())
 
