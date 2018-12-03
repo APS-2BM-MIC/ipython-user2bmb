@@ -12,6 +12,30 @@ record(bo, "$(P)StopAcquisition") {
 }
 
 
+record (mbbo, "$(P)ExperimentState") {
+    field(DESC, "state of experiment")
+    
+    # no notable experimental activity
+    field(ZRST, "idle")
+
+    # starting the experiment, 
+    # clear and prepare the computational pipeline
+    # could produce empty frames, 
+    # can get frame size and other metadata,
+    field(ONST, "initializing")
+
+    # dark, white, bright, furry, ...
+    field(TWST, "frame_other")
+
+    # the tomography data to process
+    field(THST, "frame_image")
+
+    # acquisition complete, 
+    # instrument returning to idle but not there yet
+    field(FRST, "acq_done")
+}
+
+
 record(mbbo, "2bm:instrument_in_use") {
     # instrument team sets this
     # What are the field names for additional values?
